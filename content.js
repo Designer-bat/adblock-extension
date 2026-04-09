@@ -1,24 +1,20 @@
-const removeAds = () => {
-    document.querySelectorAll(`
-        iframe[src*="ads"],
-        iframe[src*="doubleclick"],
-        [id*="ad"],
-        [class*="ad"],
-        [class*="banner"],
-        [class*="sponsor"]
-    `).forEach(el => el.remove());
+function isAdElement(el) {
+    const text = el.innerText?.toLowerCase() || "";
 
-    // popup remover (safe)
-    document.querySelectorAll(`
-        [role="dialog"],
-        [class*="popup"],
-        [class*="modal"]
-    `).forEach(el => el.remove());
-};
+    return (
+        text.includes("sponsored") ||
+        text.includes("advertisement") ||
+        el.innerHTML.includes("ads") ||
+        el.className.includes("promo")
+    );
+}
 
-const observer = new MutationObserver(removeAds);
+function removeSmartAds() {
+    document.querySelectorAll("div, section, aside").forEach(el => {
+        if (isAdElement(el)) {
+            el.remove();
+        }
+    });
+}
 
-observer.observe(document.documentElement, {
-    childList: true,
-    subtree: true
-});
+setInterval(removeSmartAds, 2000);

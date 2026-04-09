@@ -1,27 +1,22 @@
-let adCount = 0;
-
-// Initialize badge
-chrome.runtime.onInstalled.addListener(() => {
-    chrome.storage.local.set({ adCount: 0 });
-    updateBadge(0);
-});
-
-// Listen for blocked requests
 chrome.declarativeNetRequest.onRuleMatchedDebug.addListener((info) => {
-    adCount++;
+    const domain = new URL(info.request.url).hostname;
+    const today = new Date().toISOString().slice(0, 10);
 
-    chrome.storage.local.set({ adCount });
+    chrome.storage.sync.get(null, (data) => {
+        let total = data.totalBlocked || 0;
+        let perSite = data.perSite || {};
+        let weekly = data.weekly || {};
 
-    updateBadge(adCount);
+        total++;
+        perSite[domain] = (perSite[domain] || 0) + 1;
+        weekly[today] = (weekly[today] || 0) + 1;
+
+        chrome.storage.sync.set({
+            totalBlocked: total,
+            perSite,
+            weekly
+        });
+
+        chrome.action.setBadgeText({ text: perSite[domain].toString() });
+    });
 });
-
-// Update badge UI
-function updateBadge(count) {
-    chrome.action.setBadgeText({
-        text: count > 0 ? count.toString() : ""
-    });
-
-    chrome.action.setBadgeBackgroundColor({
-        color: "#FF0000"
-    });
-}

@@ -5,19 +5,55 @@
   <style>
     body {
       font-family: Arial;
-      padding: 10px;
-      width: 200px;
-      text-align: center;
+      margin: 0;
+      padding: 15px;
+      width: 260px;
+      background: #0f172a;
+      color: white;
     }
-    button {
+
+    h2 {
+      margin: 0 0 10px;
+      font-size: 16px;
+    }
+
+    .card {
+      background: #1e293b;
       padding: 10px;
+      border-radius: 10px;
+      margin-bottom: 10px;
+    }
+
+    button {
+      width: 100%;
+      padding: 10px;
+      border: none;
+      border-radius: 8px;
+      background: #22c55e;
+      color: white;
       cursor: pointer;
+    }
+
+    button:hover {
+      opacity: 0.9;
     }
   </style>
 </head>
 <body>
-  <h3>Ad Blocker</h3>
-  <button id="toggle">Loading...</button>
+
+  <h2>Ultimate Ad Blocker</h2>
+
+  <div class="card">
+    <p id="total">Total Blocked: 0</p>
+    <p id="site">This Site: 0</p>
+  </div>
+
+  <div class="card">
+    <button id="toggle">Disable</button>
+    <button id="whitelist">Whitelist Site</button>
+  </div>
+
+  <canvas id="chart" width="220" height="120"></canvas>
 
   <script src="popup.js"></script>
 </body>
