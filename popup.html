@@ -1,60 +1,356 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Document</title>
-  <style>
-    body {
-      font-family: Arial;
-      margin: 0;
-      padding: 15px;
-      width: 260px;
-      background: #0f172a;
-      color: white;
-    }
+    <title>Ultimate Ad Blocker</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
 
-    h2 {
-      margin: 0 0 10px;
-      font-size: 16px;
-    }
+        :root {
+            --bg-primary: #0f172a;
+            --bg-secondary: #1e293b;
+            --bg-tertiary: #334155;
+            --accent: #10b981;
+            --accent-hover: #059669;
+            --text-primary: #f8fafc;
+            --text-secondary: #cbd5e1;
+            --border: #475569;
+            --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+        }
 
-    .card {
-      background: #1e293b;
-      padding: 10px;
-      border-radius: 10px;
-      margin-bottom: 10px;
-    }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+            background: linear-gradient(135deg, var(--bg-primary) 0%, #0d1528 100%);
+            color: var(--text-primary);
+            padding: 0;
+            margin: 0;
+            width: 340px;
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
 
-    button {
-      width: 100%;
-      padding: 10px;
-      border: none;
-      border-radius: 8px;
-      background: #22c55e;
-      color: white;
-      cursor: pointer;
-    }
+        /* Header */
+        header {
+            padding: 20px 20px 16px;
+            background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0) 100%);
+            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
+            animation: slideDown 0.6s ease-out;
+        }
 
-    button:hover {
-      opacity: 0.9;
-    }
-  </style>
+        header h1 {
+            font-size: 20px;
+            font-weight: 700;
+            letter-spacing: -0.5px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .header-icon {
+            width: 24px;
+            height: 24px;
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 14px;
+        }
+
+        /* Main Content */
+        main {
+            padding: 16px 20px;
+            animation: fadeIn 0.8s ease-out 0.2s backwards;
+        }
+
+        /* Stats Section */
+        .stats-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a2f4a 100%);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            backdrop-filter: blur(10px);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: slideUp 0.6s ease-out;
+            animation-fill-mode: backwards;
+        }
+
+        .stat-card:nth-child(1) {
+            animation-delay: 0.3s;
+        }
+
+        .stat-card:nth-child(2) {
+            animation-delay: 0.4s;
+        }
+
+        .stat-card:hover {
+            border-color: var(--accent);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
+            transform: translateY(-4px);
+            box-shadow: var(--shadow-sm);
+        }
+
+        .stat-label {
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 8px;
+        }
+
+        .stat-value {
+            font-size: 28px;
+            font-weight: 700;
+            color: var(--accent);
+            font-variant-numeric: tabular-nums;
+            line-height: 1;
+        }
+
+        /* Chart Section */
+        .chart-section {
+            background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a2f4a 100%);
+            border: 1px solid var(--border);
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+            backdrop-filter: blur(10px);
+            animation: slideUp 0.6s ease-out 0.5s backwards;
+        }
+
+        .chart-label {
+            font-size: 12px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        #chart {
+            width: 100%;
+            height: 100px;
+            border-radius: 8px;
+            background: rgba(0, 0, 0, 0.2);
+            display: block;
+        }
+
+        /* Controls Section */
+        .controls-section {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+            margin-bottom: 16px;
+            animation: slideUp 0.6s ease-out 0.6s backwards;
+        }
+
+        button {
+            padding: 12px 16px;
+            border: none;
+            border-radius: 10px;
+            font-weight: 600;
+            font-size: 13px;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            text-transform: uppercase;
+            letter-spacing: 0.3px;
+            position: relative;
+            overflow: hidden;
+        }
+
+        button::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: -100%;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.1);
+            transition: left 0.3s ease-out;
+        }
+
+        button:hover::before {
+            left: 100%;
+        }
+
+        #toggle, #reset {
+            background: linear-gradient(135deg, var(--accent), #34d399);
+            color: white;
+            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+        }
+
+        #toggle:hover, #reset:hover {
+            background: linear-gradient(135deg, var(--accent-hover), #10b981);
+            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
+            transform: translateY(-2px);
+        }
+
+        #toggle:active, #reset:active {
+            transform: translateY(0);
+        }
+
+        #whitelist {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border);
+        }
+
+        #whitelist:hover {
+            background: rgba(52, 211, 153, 0.15);
+            border-color: var(--accent);
+            color: var(--accent);
+        }
+
+        /* Footer Info */
+        .footer-info {
+            font-size: 11px;
+            color: var(--text-secondary);
+            text-align: center;
+            padding: 12px 20px;
+            border-top: 1px solid var(--border);
+            animation: fadeIn 0.8s ease-out 0.8s backwards;
+        }
+
+        .status-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            background: rgba(16, 185, 129, 0.15);
+            border: 1px solid var(--accent);
+            border-radius: 20px;
+            font-size: 11px;
+            font-weight: 600;
+            color: var(--accent);
+            margin-top: 4px;
+        }
+
+        .status-dot {
+            width: 6px;
+            height: 6px;
+            background: var(--accent);
+            border-radius: 50%;
+            animation: pulse 2s ease-in-out infinite;
+        }
+
+        /* Animations */
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        @keyframes pulse {
+            0%, 100% {
+                opacity: 1;
+            }
+            50% {
+                opacity: 0.5;
+            }
+        }
+
+        /* Smooth scrolling */
+        html {
+            scroll-behavior: smooth;
+        }
+
+        /* Better focus states */
+        button:focus {
+            outline: none;
+            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
+        }
+
+        /* Loading state */
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        button:disabled:hover {
+            transform: none;
+        }
+    </style>
 </head>
 <body>
 
-  <h2>Ultimate Ad Blocker</h2>
+    <header>
+        <h1>
+            <div class="header-icon">🛡️</div>
+            Shield
+        </h1>
+    </header>
 
-  <div class="card">
-    <p id="total">Total Blocked: 0</p>
-    <p id="site">This Site: 0</p>
-  </div>
+    <main>
+        <div class="stats-section">
+            <div class="stat-card">
+                <div class="stat-label">Total Blocked</div>
+                <div class="stat-value" id="total">0</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">This Site</div>
+                <div class="stat-value" id="site">0</div>
+            </div>
+        </div>
 
-  <div class="card">
-    <button id="toggle">Disable</button>
-    <button id="whitelist">Whitelist Site</button>
-  </div>
+        <div class="chart-section">
+            <div class="chart-label">Weekly Activity</div>
+            <canvas id="chart" width="300" height="100"></canvas>
+        </div>
 
-  <canvas id="chart" width="220" height="120"></canvas>
+        <div class="controls-section">
+            <button id="toggle">Disable</button>
+            <button id="reset">Reset</button>
+        </div>
 
-  <script src="popup.js"></script>
+        <div class="controls-section" style="grid-template-columns: 1fr;">
+            <button id="whitelist">Whitelist This Site</button>
+        </div>
+    </main>
+
+    <div class="footer-info">
+        <div class="status-badge">
+            <div class="status-dot"></div>
+            Active
+        </div>
+        <div style="margin-top: 8px;">Protecting your privacy</div>
+    </div>
+
+    <script src="popup.js"></script>
 </body>
 </html>
