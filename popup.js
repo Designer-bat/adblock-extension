@@ -1,260 +1,383 @@
-const btn = document.getElementById("toggle");
-const resetBtn = document.getElementById("reset");
-const whitelistBtn = document.getElementById("whitelist");
+// ============================================================
+// Ultimate Ad Blocker v2.0 — Popup Controller
+// Handles: tab switching, stats display, chart, toggles,
+//          whitelist mgmt, custom filters, debug logs
+// ============================================================
 
-// Initialize UI on load
-function initializeUI() {
-    // Get stored data
-    chrome.storage.sync.get(["enabled", "totalBlocked", "perSite", "weekly"], (data) => {
-        if (chrome.runtime.lastError) {
-            console.error("Storage error:", chrome.runtime.lastError);
-            return;
-        }
+'use strict';
 
-        // Update toggle button
-        if (btn) {
-            btn.textContent = data.enabled ? "Disable" : "Enable";
-        }
+// ─── DOM Refs ──────────────────────────────────────────────
+const masterToggle    = document.getElementById('masterToggle');
+const toggleLabel     = document.getElementById('toggleLabel');
+const debugToggle     = document.getElementById('debugToggle');
+const siteDomainEl    = document.getElementById('siteDomain');
+const statusPill      = document.getElementById('statusPill');
+const statusDot       = document.getElementById('statusDot');
+const statusText      = document.getElementById('statusText');
+const totalBlockedEl  = document.getElementById('totalBlocked');
+const phishingEl      = document.getElementById('phishingBlocked');
+const siteBlockedEl   = document.getElementById('siteBlocked');
+const chartTotalEl    = document.getElementById('chartTotal');
+const filterInput     = document.getElementById('filterInput');
+const filterList      = document.getElementById('filterList');
+const whitelistList   = document.getElementById('whitelistList');
+const logList         = document.getElementById('logList');
 
-        // Update total blocked count
-        const totalEl = document.getElementById("total");
-        if (totalEl) {
-            animateCounter(totalEl, parseInt(totalEl.textContent) || 0, data.totalBlocked || 0);
-        }
+// ─── Tab Navigation ────────────────────────────────────────
+document.querySelectorAll('.tab').forEach(tab => {
+    tab.addEventListener('click', () => {
+        const target = tab.dataset.tab;
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById(`panel-${target}`)?.classList.add('active');
 
-        // Get current site stats
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (chrome.runtime.lastError || !tabs[0]) {
-                console.error("Tabs query error:", chrome.runtime.lastError);
-                return;
-            }
-
-            try {
-                const domain = new URL(tabs[0].url).hostname;
-                const siteCount = data.perSite?.[domain] || 0;
-
-                const siteEl = document.getElementById("site");
-                if (siteEl) {
-                    animateCounter(siteEl, parseInt(siteEl.textContent) || 0, siteCount);
-                }
-            } catch (e) {
-                console.error("URL parsing error:", e);
-            }
-        });
-
-        // Draw chart
-        drawChart(data.weekly || {});
+        // Load data for the newly visible tab
+        if (target === 'logs') loadLogs();
+        if (target === 'whitelist') loadWhitelist();
+        if (target === 'filters') loadFilters();
     });
+});
+
+// ─── State ─────────────────────────────────────────────────
+let currentDomain = '';
+let isWhitelisted  = false;
+let isEnabled      = true;
+
+// ─── Init ──────────────────────────────────────────────────
+async function init() {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    const tab  = tabs[0];
+
+    try {
+        currentDomain = tab?.url ? new URL(tab.url).hostname : '—';
+    } catch (_) {
+        currentDomain = '—';
+    }
+    siteDomainEl.textContent = currentDomain;
+
+    loadStats();
 }
 
-// Animate counter from current to target
-function animateCounter(element, current, target) {
-    if (current === target) {
-        element.textContent = target;
+// ─── Stats & Status ────────────────────────────────────────
+async function loadStats() {
+    const data = await storageGet([
+        'enabled', 'totalBlocked', 'adsBlocked', 'phishingBlocked',
+        'perSite', 'weekly', 'whitelist', 'debugMode'
+    ]);
+
+    isEnabled    = data.enabled !== false;
+    isWhitelisted = (data.whitelist || []).includes(currentDomain);
+
+    // Master toggle
+    masterToggle.checked = isEnabled;
+    toggleLabel.textContent = isEnabled ? 'ON' : 'OFF';
+
+    // Debug toggle
+    debugToggle.checked = data.debugMode || false;
+
+    // Status pill
+    updateStatusPill();
+
+    // Counters (animated)
+    animateCounter(totalBlockedEl, data.totalBlocked || 0);
+    animateCounter(phishingEl,     data.phishingBlocked || 0);
+    animateCounter(siteBlockedEl,  (data.perSite || {})[currentDomain] || 0);
+
+    // Chart
+    drawChart(data.weekly || {});
+}
+
+function updateStatusPill() {
+    statusPill.className = 'status-pill';
+    statusDot.className  = 'dot';
+
+    if (!isEnabled) {
+        statusPill.classList.add('disabled');
+        statusDot.classList.add('gray');
+        statusText.textContent = 'Disabled';
+    } else if (isWhitelisted) {
+        statusPill.classList.add('whitelisted');
+        statusDot.classList.add('yellow');
+        statusText.textContent = 'Whitelisted';
+    } else {
+        statusPill.classList.add('protected');
+        statusDot.classList.add('green');
+        statusText.textContent = 'Protected';
+    }
+}
+
+// ─── Master Toggle ─────────────────────────────────────────
+masterToggle.addEventListener('change', async () => {
+    isEnabled = masterToggle.checked;
+    toggleLabel.textContent = isEnabled ? 'ON' : 'OFF';
+    await chrome.storage.sync.set({ enabled: isEnabled });
+    updateStatusPill();
+});
+
+// ─── Debug Toggle ──────────────────────────────────────────
+debugToggle.addEventListener('change', async () => {
+    await chrome.storage.sync.set({ debugMode: debugToggle.checked });
+});
+
+// ─── Whitelist Button ──────────────────────────────────────
+document.getElementById('btnWhitelist').addEventListener('click', async () => {
+    if (!currentDomain || currentDomain === '—') return;
+
+    if (isWhitelisted) {
+        // Remove from whitelist
+        await chrome.runtime.sendMessage({ action: 'removeFromWhitelist', domain: currentDomain });
+        isWhitelisted = false;
+        showToast(`${currentDomain} removed from whitelist`);
+    } else {
+        await chrome.runtime.sendMessage({ action: 'addToWhitelist', domain: currentDomain });
+        isWhitelisted = true;
+        showToast(`${currentDomain} whitelisted`);
+    }
+
+    document.getElementById('btnWhitelist').textContent = isWhitelisted ? 'Un-whitelist' : 'Whitelist Site';
+    updateStatusPill();
+    loadWhitelist();
+});
+
+// ─── Reset Stats ───────────────────────────────────────────
+document.getElementById('btnReset').addEventListener('click', async () => {
+    if (!confirm('Reset all blocked stats?')) return;
+    await chrome.storage.sync.set({ totalBlocked: 0, adsBlocked: 0, phishingBlocked: 0, perSite: {}, weekly: {} });
+    animateCounter(totalBlockedEl, 0);
+    animateCounter(phishingEl, 0);
+    animateCounter(siteBlockedEl, 0);
+    drawChart({});
+    showToast('Stats reset');
+});
+
+// ─── Report Site ───────────────────────────────────────────
+document.getElementById('btnReport').addEventListener('click', async () => {
+    if (!currentDomain || currentDomain === '—') return;
+    await chrome.runtime.sendMessage({ action: 'reportSite', domain: currentDomain });
+    showToast(`${currentDomain} reported — thank you!`);
+});
+
+// ─── Custom Filters ────────────────────────────────────────
+document.getElementById('btnAddFilter').addEventListener('click', addCustomFilter);
+filterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addCustomFilter(); });
+
+async function addCustomFilter() {
+    let domain = filterInput.value.trim().toLowerCase();
+    if (!domain) return;
+    // Strip protocol/path if user pasted a full URL
+    try { domain = new URL(domain.includes('://') ? domain : `http://${domain}`).hostname; } catch (_) {}
+    if (!domain) return;
+
+    await chrome.runtime.sendMessage({ action: 'addCustomFilter', domain });
+    filterInput.value = '';
+    showToast(`${domain} blocked`);
+    loadFilters();
+}
+
+async function loadFilters() {
+    const data    = await storageGet('customFilters');
+    const filters = data.customFilters || [];
+
+    if (filters.length === 0) {
+        filterList.innerHTML = '<div class="empty-msg">No custom filters yet</div>';
         return;
     }
 
-    const duration = 600;
-    const startTime = performance.now();
-    const difference = target - current;
+    filterList.innerHTML = filters.map(f => `
+        <div class="filter-tag">
+            <span class="filter-tag-domain">${escHtml(f)}</span>
+            <button class="btn-remove-filter" data-domain="${escHtml(f)}" title="Remove">×</button>
+        </div>
+    `).join('');
 
-    function update(currentTime) {
-        const elapsed = currentTime - startTime;
-        const progress = Math.min(elapsed / duration, 1);
+    filterList.querySelectorAll('.btn-remove-filter').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const d = btn.dataset.domain;
+            await chrome.runtime.sendMessage({ action: 'removeCustomFilter', domain: d });
+            showToast(`${d} removed`);
+            loadFilters();
+        });
+    });
+}
 
-        const easeOut = 1 - Math.pow(1 - progress, 3);
-        const newValue = Math.floor(current + difference * easeOut);
+// ─── Whitelist Manager ─────────────────────────────────────
+async function loadWhitelist() {
+    const data = await storageGet('whitelist');
+    const wl   = data.whitelist || [];
 
-        element.textContent = newValue;
-
-        if (progress < 1) {
-            requestAnimationFrame(update);
-        }
+    if (wl.length === 0) {
+        whitelistList.innerHTML = '<div class="empty-msg">No sites whitelisted</div>';
+        return;
     }
 
-    requestAnimationFrame(update);
-}
+    whitelistList.innerHTML = wl.map(d => `
+        <div class="wl-item">
+            <span class="wl-domain">${escHtml(d)}</span>
+            <button class="btn-remove-wl" data-domain="${escHtml(d)}" title="Remove">✕</button>
+        </div>
+    `).join('');
 
-// Toggle button handler
-if (btn) {
-    btn.addEventListener("click", () => {
-        btn.disabled = true;
-
-        chrome.storage.sync.get("enabled", (data) => {
-            if (chrome.runtime.lastError) {
-                console.error("Storage error:", chrome.runtime.lastError);
-                btn.disabled = false;
-                return;
+    whitelistList.querySelectorAll('.btn-remove-wl').forEach(btn => {
+        btn.addEventListener('click', async () => {
+            const d = btn.dataset.domain;
+            await chrome.runtime.sendMessage({ action: 'removeFromWhitelist', domain: d });
+            if (d === currentDomain) {
+                isWhitelisted = false;
+                updateStatusPill();
+                document.getElementById('btnWhitelist').textContent = 'Whitelist Site';
             }
-
-            const newState = !data.enabled;
-
-            chrome.storage.sync.set({ enabled: newState }, () => {
-                if (chrome.runtime.lastError) {
-                    console.error("Storage error:", chrome.runtime.lastError);
-                    btn.disabled = false;
-                    return;
-                }
-
-                btn.textContent = newState ? "Disable" : "Enable";
-                btn.disabled = false;
-            });
+            showToast(`${d} removed from whitelist`);
+            loadWhitelist();
         });
     });
 }
 
-// Reset button
-if (resetBtn) {
-    resetBtn.addEventListener("click", () => {
-        if (confirm("Are you sure you want to reset all data?")) {
-            resetBtn.disabled = true;
+// ─── Debug Logs ────────────────────────────────────────────
+async function loadLogs() {
+    const resp = await chrome.runtime.sendMessage({ action: 'getLogs' });
+    const logs = resp?.logs || [];
 
-            chrome.storage.sync.set({
-                totalBlocked: 0,
-                perSite: {},
-                weekly: {}
-            }, () => {
-                if (chrome.runtime.lastError) {
-                    console.error("Storage error:", chrome.runtime.lastError);
-                    resetBtn.disabled = false;
-                    return;
-                }
+    if (logs.length === 0) {
+        logList.innerHTML = '<div style="color:var(--text2);font-size:11px;">No log entries. Enable Debug Mode to capture events.</div>';
+        return;
+    }
 
-                resetBtn.disabled = false;
-                initializeUI();
-            });
-        }
-    });
+    logList.innerHTML = logs.map(entry => {
+        const isPhishing = entry.includes('[PHISHING');
+        return `<div class="log-entry${isPhishing ? ' phishing' : ''}">${escHtml(entry)}</div>`;
+    }).join('');
 }
 
-// Whitelist current site
-if (whitelistBtn) {
-    whitelistBtn.addEventListener("click", () => {
-        chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
-            if (!tabs[0]) return;
+document.getElementById('btnClearLog').addEventListener('click', async () => {
+    await chrome.runtime.sendMessage({ action: 'clearLogs' });
+    loadLogs();
+    showToast('Logs cleared');
+});
 
-            try {
-                const domain = new URL(tabs[0].url).hostname;
-                chrome.storage.sync.get("whitelist", (data) => {
-                    const whitelist = data.whitelist || [];
-                    if (!whitelist.includes(domain)) {
-                        whitelist.push(domain);
-                        chrome.storage.sync.set({ whitelist }, () => {
-                            whitelistBtn.textContent = "✓ Whitelisted";
-                            whitelistBtn.disabled = true;
-                            setTimeout(() => {
-                                whitelistBtn.textContent = "Whitelist This Site";
-                                whitelistBtn.disabled = false;
-                            }, 2000);
-                        });
-                    }
-                });
-            } catch (e) {
-                console.error("URL parsing error:", e);
-            }
-        });
-    });
-}
-
-// Premium chart rendering with gradients and smooth bars
+// ─── Chart ─────────────────────────────────────────────────
 function drawChart(data = {}) {
-    const canvas = document.getElementById("chart");
+    const canvas = document.getElementById('chart');
     if (!canvas) return;
+    const ctx  = canvas.getContext('2d');
+    const dpr  = window.devicePixelRatio || 1;
+    const W    = canvas.offsetWidth  || 320;
+    const H    = 80;
 
-    const ctx = canvas.getContext("2d");
-    if (!ctx) return;
+    canvas.width  = W * dpr;
+    canvas.height = H * dpr;
+    ctx.scale(dpr, dpr);
+    ctx.clearRect(0, 0, W, H);
 
-    // Set canvas resolution for crisp rendering
-    const rect = canvas.getBoundingClientRect();
-    canvas.width = rect.width * window.devicePixelRatio;
-    canvas.height = rect.height * window.devicePixelRatio;
-    ctx.scale(window.devicePixelRatio, window.devicePixelRatio);
-
-    const values = Object.values(data).filter(v => typeof v === "number");
-
-    // Clear canvas with gradient background
-    const bgGradient = ctx.createLinearGradient(0, 0, 0, rect.height);
-    bgGradient.addColorStop(0, "rgba(16, 185, 129, 0.05)");
-    bgGradient.addColorStop(1, "rgba(16, 185, 129, 0)");
-    ctx.fillStyle = bgGradient;
-    ctx.fillRect(0, 0, rect.width, rect.height);
+    const values = Object.values(data).filter(v => typeof v === 'number').slice(-7);
+    const weekSum = values.reduce((a, b) => a + b, 0);
+    if (chartTotalEl) chartTotalEl.textContent = weekSum > 0 ? `${weekSum} this week` : '';
 
     if (values.length === 0) {
-        ctx.fillStyle = "#64748b";
-        ctx.font = "12px -apple-system, BlinkMacSystemFont, 'Segoe UI'";
-        ctx.textAlign = "center";
-        ctx.fillText("No data yet", rect.width / 2, rect.height / 2);
+        ctx.fillStyle = 'rgba(100,116,139,0.6)';
+        ctx.font = '11px system-ui';
+        ctx.textAlign = 'center';
+        ctx.fillText('No data yet', W / 2, H / 2 + 4);
         return;
     }
 
-    // Get last 7 days
-    const last7 = values.slice(-7);
-    const max = Math.max(...last7, 1);
+    const max      = Math.max(...values, 1);
+    const padL     = 8, padR = 8, padB = 4, padT = 14;
+    const plotW    = W - padL - padR;
+    const plotH    = H - padT - padB;
+    const barW     = Math.floor(plotW / 7) - 4;
+    const gap      = Math.floor(plotW / 7);
 
-    const barWidth = Math.floor((rect.width - 30) / 7);
-    const gap = 6;
-    const padding = 15;
-    const chartHeight = rect.height - 40;
+    values.forEach((val, i) => {
+        const bh   = Math.max((val / max) * plotH, val > 0 ? 3 : 0);
+        const x    = padL + i * gap;
+        const y    = padT + plotH - bh;
 
-    // Draw bars with gradient
-    last7.forEach((val, i) => {
-        const barHeight = (val / max) * chartHeight;
-        const x = padding + i * (barWidth + gap);
-        const y = rect.height - 25 - barHeight;
+        const grad = ctx.createLinearGradient(0, y, 0, y + bh);
+        grad.addColorStop(0, 'rgba(16,185,129,0.9)');
+        grad.addColorStop(1, 'rgba(5,150,105,0.5)');
+        ctx.fillStyle = grad;
+        ctx.shadowColor = 'rgba(16,185,129,0.3)';
+        ctx.shadowBlur  = 6;
 
-        // Bar gradient
-        const barGradient = ctx.createLinearGradient(0, y, 0, rect.height - 25);
-        barGradient.addColorStop(0, "#10b981");
-        barGradient.addColorStop(1, "#059669");
-
-        ctx.fillStyle = barGradient;
-        ctx.shadowColor = "rgba(16, 185, 129, 0.3)";
-        ctx.shadowBlur = 8;
-        ctx.shadowOffsetY = 2;
-
-        // Round top corners
+        // Rounded top bar
+        const r2 = Math.min(3, bh / 2);
         ctx.beginPath();
-        ctx.moveTo(x, y + 4);
-        ctx.lineTo(x, y + barHeight - 4);
-        ctx.quadraticCurveTo(x, y + barHeight, x + barWidth / 2, y + barHeight);
-        ctx.quadraticCurveTo(x + barWidth, y + barHeight, x + barWidth, y + barHeight - 4);
-        ctx.lineTo(x + barWidth, y + 4);
-        ctx.quadraticCurveTo(x + barWidth, y, x + barWidth / 2, y);
-        ctx.quadraticCurveTo(x, y, x, y + 4);
+        ctx.moveTo(x, y + r2);
+        ctx.arcTo(x, y, x + r2, y, r2);
+        ctx.arcTo(x + barW, y, x + barW, y + r2, r2);
+        ctx.lineTo(x + barW, y + bh);
+        ctx.lineTo(x, y + bh);
+        ctx.closePath();
         ctx.fill();
+        ctx.shadowBlur = 0;
 
-        ctx.shadowColor = "transparent";
-
-        // Value label
         if (val > 0) {
-            ctx.fillStyle = "#f8fafc";
-            ctx.font = "bold 10px -apple-system, BlinkMacSystemFont, 'Segoe UI'";
-            ctx.textAlign = "center";
-            ctx.fillText(val.toString(), x + barWidth / 2, y - 6);
+            ctx.fillStyle   = 'rgba(240,246,255,0.7)';
+            ctx.font        = `bold ${Math.min(10, barW)}px system-ui`;
+            ctx.textAlign   = 'center';
+            ctx.fillText(val > 999 ? `${(val/1000).toFixed(1)}k` : val, x + barW / 2, y - 3);
         }
     });
 
-    // Draw axis
-    ctx.strokeStyle = "rgba(71, 85, 105, 0.5)";
-    ctx.lineWidth = 1;
+    // X-axis
+    ctx.strokeStyle = 'rgba(71,85,105,0.4)';
+    ctx.lineWidth   = 1;
     ctx.beginPath();
-    ctx.moveTo(padding, rect.height - 25);
-    ctx.lineTo(rect.width - 5, rect.height - 25);
-    ctx.stroke();
-
-    ctx.strokeStyle = "rgba(71, 85, 105, 0.3)";
-    ctx.beginPath();
-    ctx.moveTo(padding, 10);
-    ctx.lineTo(padding, rect.height - 25);
+    ctx.moveTo(padL, H - padB);
+    ctx.lineTo(W - padR, H - padB);
     ctx.stroke();
 }
 
-// Initialize on page load
-if (document.readyState === "loading") {
-    document.addEventListener("DOMContentLoaded", initializeUI);
-} else {
-    initializeUI();
+// ─── Counter Animation ─────────────────────────────────────
+function animateCounter(el, target) {
+    if (!el) return;
+    const start    = parseInt(el.textContent, 10) || 0;
+    if (start === target) { el.textContent = target; return; }
+    const duration = 500;
+    const t0       = performance.now();
+    const diff     = target - start;
+
+    function tick(now) {
+        const p    = Math.min((now - t0) / duration, 1);
+        const ease = 1 - Math.pow(1 - p, 3);
+        el.textContent = Math.round(start + diff * ease);
+        if (p < 1) requestAnimationFrame(tick);
+    }
+    requestAnimationFrame(tick);
 }
 
-// Refresh every 5 seconds for real-time updates
-setInterval(initializeUI, 5000);
+// ─── Toast Notification ────────────────────────────────────
+let toastTimer = null;
+function showToast(msg) {
+    let existing = document.querySelector('.toast');
+    if (existing) existing.remove();
+    clearTimeout(toastTimer);
+    const toast = document.createElement('div');
+    toast.className = 'toast';
+    toast.textContent = msg;
+    document.body.appendChild(toast);
+    toastTimer = setTimeout(() => toast.remove(), 2200);
+}
+
+// ─── Utils ─────────────────────────────────────────────────
+function storageGet(keys) {
+    return new Promise(resolve => chrome.storage.sync.get(keys, resolve));
+}
+
+function escHtml(str) {
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;');
+}
+
+// ─── Auto-refresh ──────────────────────────────────────────
+init();
+// Refresh stats every 3 seconds
+setInterval(() => {
+    const activeTab = document.querySelector('.tab.active')?.dataset.tab;
+    if (activeTab === 'shield') loadStats();
+    if (activeTab === 'logs')   loadLogs();
+}, 3000);

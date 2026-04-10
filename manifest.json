@@ -1,21 +1,27 @@
 {
   "manifest_version": 3,
   "name": "Ultimate Ad Blocker",
-  "version": "1.1.0",
-  "description": "Blocks ads and popups across websites safely",
+  "version": "2.0.0",
+  "description": "Powerful ad blocker: blocks YouTube ads, phishing popups, trackers, and scam overlays. Anti-adblock bypass included.",
   "permissions": [
-  "declarativeNetRequest",
-  "declarativeNetRequestWithHostAccess",
-  "declarativeNetRequestFeedback",
-  "storage"
-],
+    "declarativeNetRequest",
+    "declarativeNetRequestWithHostAccess",
+    "declarativeNetRequestFeedback",
+    "storage",
+    "tabs",
+    "scripting",
+    "activeTab"
+  ],
   "host_permissions": ["<all_urls>"],
   "background": {
     "service_worker": "background.js"
   },
   "action": {
     "default_popup": "popup.html",
-    "default_title": "Ultimate Ad Blocker"
+    "default_title": "Ultimate Ad Blocker",
+    "default_icon": {
+      "128": "icon128.png"
+    }
   },
   "icons": {
     "128": "icon128.png"
@@ -23,7 +29,7 @@
   "declarative_net_request": {
     "rule_resources": [
       {
-        "id": "rules_1",
+        "id": "rules_static",
         "enabled": true,
         "path": "rules.json"
       }
@@ -31,9 +37,22 @@
   },
   "content_scripts": [
     {
+      "matches": ["*://*.youtube.com/*"],
+      "js": ["youtube.js"],
+      "run_at": "document_start",
+      "all_frames": false
+    },
+    {
       "matches": ["<all_urls>"],
       "js": ["content.js"],
-      "run_at": "document_idle"
+      "run_at": "document_idle",
+      "all_frames": false,
+      "exclude_matches": [
+        "chrome://*/*",
+        "chrome-extension://*/*",
+        "about:*"
+      ]
     }
-  ]
+  ],
+  "web_accessible_resources": []
 }

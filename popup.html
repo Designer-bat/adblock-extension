@@ -1,356 +1,444 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
 <head>
+    <meta charset="UTF-8">
     <title>Ultimate Ad Blocker</title>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
+        /* ── Reset & Variables ─────────────────────────── */
+        *, *::before, *::after { margin: 0; padding: 0; box-sizing: border-box; }
 
         :root {
-            --bg-primary: #0f172a;
-            --bg-secondary: #1e293b;
-            --bg-tertiary: #334155;
-            --accent: #10b981;
-            --accent-hover: #059669;
-            --text-primary: #f8fafc;
-            --text-secondary: #cbd5e1;
-            --border: #475569;
-            --shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
-            --shadow-sm: 0 4px 12px rgba(0, 0, 0, 0.2);
+            --bg0:       #080d1a;
+            --bg1:       #0f1729;
+            --bg2:       #1a2540;
+            --bg3:       #243050;
+            --accent:    #10b981;
+            --accent2:   #34d399;
+            --red:       #ef4444;
+            --yellow:    #f59e0b;
+            --blue:      #3b82f6;
+            --text0:     #f0f6ff;
+            --text1:     #94a3b8;
+            --text2:     #64748b;
+            --border:    rgba(255,255,255,0.07);
+            --shadow:    0 20px 60px rgba(0,0,0,0.6);
+            --r:         12px;
+            --r-sm:      8px;
+            --transition: all 0.25s cubic-bezier(0.4,0,0.2,1);
         }
 
         body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
-            background: linear-gradient(135deg, var(--bg-primary) 0%, #0d1528 100%);
-            color: var(--text-primary);
-            padding: 0;
-            margin: 0;
-            width: 340px;
-            min-height: 100vh;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+            background: linear-gradient(155deg, var(--bg0) 0%, #0b1220 60%, #06101e 100%);
+            color: var(--text0);
+            width: 360px;
+            min-height: 500px;
             overflow-x: hidden;
+            font-size: 13px;
+            line-height: 1.5;
         }
 
-        /* Header */
-        header {
-            padding: 20px 20px 16px;
-            background: linear-gradient(180deg, rgba(16, 185, 129, 0.1) 0%, rgba(16, 185, 129, 0) 100%);
-            border-bottom: 1px solid rgba(16, 185, 129, 0.2);
-            animation: slideDown 0.6s ease-out;
-        }
+        /* ── Scrollbar ─────────────────────────────────── */
+        ::-webkit-scrollbar { width: 4px; }
+        ::-webkit-scrollbar-track { background: transparent; }
+        ::-webkit-scrollbar-thumb { background: var(--bg3); border-radius: 4px; }
 
-        header h1 {
-            font-size: 20px;
-            font-weight: 700;
-            letter-spacing: -0.5px;
+        /* ── Header ────────────────────────────────────── */
+        .header {
+            padding: 18px 20px 14px;
+            background: linear-gradient(180deg, rgba(16,185,129,0.12) 0%, transparent 100%);
+            border-bottom: 1px solid rgba(16,185,129,0.18);
             display: flex;
             align-items: center;
-            gap: 8px;
+            justify-content: space-between;
+            animation: slideDown 0.5s ease-out;
         }
 
-        .header-icon {
-            width: 24px;
-            height: 24px;
-            background: linear-gradient(135deg, var(--accent), #34d399);
-            border-radius: 6px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 14px;
+        .header-left { display: flex; align-items: center; gap: 10px; }
+
+        .logo {
+            width: 30px; height: 30px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            border-radius: var(--r-sm);
+            display: flex; align-items: center; justify-content: center;
+            font-size: 16px;
+            box-shadow: 0 0 16px rgba(16,185,129,0.4);
         }
 
-        /* Main Content */
-        main {
-            padding: 16px 20px;
-            animation: fadeIn 0.8s ease-out 0.2s backwards;
+        .header h1 {
+            font-size: 17px; font-weight: 700;
+            letter-spacing: -0.4px;
+            background: linear-gradient(135deg, var(--text0), var(--accent2));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
         }
 
-        /* Stats Section */
-        .stats-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 20px;
-        }
-
-        .stat-card {
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a2f4a 100%);
+        .version {
+            font-size: 10px; color: var(--text2);
+            background: var(--bg2);
+            padding: 2px 7px; border-radius: 20px;
             border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            backdrop-filter: blur(10px);
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            animation: slideUp 0.6s ease-out;
-            animation-fill-mode: backwards;
         }
 
-        .stat-card:nth-child(1) {
-            animation-delay: 0.3s;
+        /* Master toggle */
+        .master-toggle {
+            display: flex; align-items: center; gap: 8px;
+        }
+        .toggle-label { font-size: 11px; font-weight: 600; color: var(--text1); }
+        .switch { position: relative; width: 40px; height: 22px; }
+        .switch input { display: none; }
+        .slider {
+            position: absolute; inset: 0;
+            background: var(--bg3); border-radius: 22px;
+            cursor: pointer; transition: var(--transition);
+            border: 1px solid var(--border);
+        }
+        .slider::before {
+            content: '';
+            position: absolute; width: 16px; height: 16px;
+            background: white; border-radius: 50%;
+            top: 2px; left: 2px;
+            transition: var(--transition);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.4);
+        }
+        .switch input:checked + .slider { background: var(--accent); border-color: var(--accent); box-shadow: 0 0 12px rgba(16,185,129,0.4); }
+        .switch input:checked + .slider::before { transform: translateX(18px); }
+
+        /* ── Site Status Bar ────────────────────────────── */
+        .site-bar {
+            display: flex; align-items: center;
+            justify-content: space-between;
+            padding: 10px 20px;
+            background: var(--bg1);
+            border-bottom: 1px solid var(--border);
+            animation: fadeIn 0.5s ease-out 0.1s backwards;
         }
 
-        .stat-card:nth-child(2) {
-            animation-delay: 0.4s;
+        .site-info { display: flex; align-items: center; gap: 6px; }
+        .site-domain { font-size: 12px; color: var(--text1); font-weight: 500; max-width: 180px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+        .status-pill {
+            font-size: 10px; font-weight: 700; padding: 2px 9px;
+            border-radius: 20px; display: flex; align-items: center; gap: 4px;
+            text-transform: uppercase; letter-spacing: 0.5px;
         }
+        .status-pill.protected { background: rgba(16,185,129,0.15); color: var(--accent); border: 1px solid rgba(16,185,129,0.3); }
+        .status-pill.whitelisted { background: rgba(245,158,11,0.15); color: var(--yellow); border: 1px solid rgba(245,158,11,0.3); }
+        .status-pill.disabled { background: rgba(100,116,139,0.15); color: var(--text2); border: 1px solid var(--border); }
+        .dot { width: 6px; height: 6px; border-radius: 50%; }
+        .dot.green { background: var(--accent); animation: pulse 2s infinite; }
+        .dot.yellow { background: var(--yellow); }
+        .dot.gray { background: var(--text2); }
 
-        .stat-card:hover {
-            border-color: var(--accent);
-            background: linear-gradient(135deg, rgba(16, 185, 129, 0.1), rgba(16, 185, 129, 0.05));
-            transform: translateY(-4px);
-            box-shadow: var(--shadow-sm);
+        /* ── Tab Navigation ─────────────────────────────── */
+        .tabs {
+            display: flex;
+            background: var(--bg1);
+            border-bottom: 1px solid var(--border);
+            animation: fadeIn 0.5s ease-out 0.15s backwards;
         }
+        .tab {
+            flex: 1; padding: 10px 6px;
+            text-align: center; cursor: pointer;
+            font-size: 11px; font-weight: 600;
+            color: var(--text2); border: none; background: none;
+            transition: var(--transition);
+            border-bottom: 2px solid transparent;
+            text-transform: uppercase; letter-spacing: 0.4px;
+        }
+        .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+        .tab:hover:not(.active) { color: var(--text1); background: rgba(255,255,255,0.04); }
 
-        .stat-label {
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
+        /* ── Tab Panels ─────────────────────────────────── */
+        .panel { display: none; padding: 16px 20px; animation: fadeIn 0.3s ease-out; }
+        .panel.active { display: block; }
+
+        /* ── Stats Grid ─────────────────────────────────── */
+        .stats-grid {
+            display: grid; grid-template-columns: 1fr 1fr 1fr;
+            gap: 10px; margin-bottom: 16px;
+        }
+        .stat-card {
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--r);
+            padding: 12px 10px;
+            text-align: center;
+            transition: var(--transition);
+            animation: slideUp 0.5s ease-out backwards;
+        }
+        .stat-card:nth-child(1) { animation-delay: 0.1s; }
+        .stat-card:nth-child(2) { animation-delay: 0.18s; }
+        .stat-card:nth-child(3) { animation-delay: 0.26s; }
+        .stat-card:hover { border-color: rgba(16,185,129,0.3); transform: translateY(-2px); }
+        .stat-icon { font-size: 18px; margin-bottom: 4px; }
+        .stat-value { font-size: 22px; font-weight: 800; color: var(--accent); font-variant-numeric: tabular-nums; line-height: 1; }
+        .stat-card.phishing .stat-value { color: var(--red); }
+        .stat-card.phishing:hover { border-color: rgba(239,68,68,0.3); }
+        .stat-card.site-card .stat-value { color: var(--blue); }
+        .stat-card.site-card:hover { border-color: rgba(59,130,246,0.3); }
+        .stat-label { font-size: 9px; font-weight: 600; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 4px; }
+
+        /* ── Chart ──────────────────────────────────────── */
+        .chart-card {
+            background: var(--bg2); border: 1px solid var(--border);
+            border-radius: var(--r); padding: 14px;
+            margin-bottom: 16px;
+            animation: slideUp 0.5s ease-out 0.3s backwards;
+        }
+        .chart-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+        .chart-title { font-size: 10px; font-weight: 700; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
+        .chart-total { font-size: 10px; color: var(--accent); font-weight: 700; }
+        #chart { width: 100%; height: 80px; display: block; border-radius: 6px; }
+
+        /* ── Action Buttons ─────────────────────────────── */
+        .actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px; animation: slideUp 0.5s ease-out 0.38s backwards; }
+
+        button.btn {
+            padding: 10px 14px;
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            font-weight: 600; font-size: 12px;
+            cursor: pointer; transition: var(--transition);
+            text-transform: uppercase; letter-spacing: 0.3px;
+            position: relative; overflow: hidden;
+            outline: none;
+        }
+        button.btn::after {
+            content: '';
+            position: absolute; inset: 0;
+            background: rgba(255,255,255,0.08);
+            opacity: 0; transition: opacity 0.2s;
+        }
+        button.btn:hover::after { opacity: 1; }
+        button.btn:active { transform: scale(0.97); }
+        button.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+
+        .btn-whitelist { background: var(--bg2); color: var(--text1); }
+        .btn-whitelist:hover { border-color: var(--yellow); color: var(--yellow); }
+        .btn-reset     { background: var(--bg2); color: var(--text1); }
+        .btn-reset:hover { border-color: var(--red); color: var(--red); }
+        .btn-report    { background: var(--bg2); color: var(--text1); grid-column: 1/-1; }
+        .btn-report:hover { border-color: var(--blue); color: var(--blue); }
+
+        /* ── Debug Toggle Row ───────────────────────────── */
+        .debug-row {
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 10px 14px;
+            background: var(--bg2);
+            border: 1px solid var(--border);
+            border-radius: var(--r-sm);
+            margin-bottom: 10px;
+            animation: fadeIn 0.5s ease-out 0.44s backwards;
+        }
+        .debug-row-label { font-size: 12px; font-weight: 600; color: var(--text1); display: flex; align-items: center; gap: 6px; }
+
+        /* ── Filters Panel ──────────────────────────────── */
+        .filters-section { margin-bottom: 14px; }
+        .section-title {
+            font-size: 10px; font-weight: 700; color: var(--text2);
+            text-transform: uppercase; letter-spacing: 0.5px;
             margin-bottom: 8px;
         }
+        .filter-input-row { display: flex; gap: 8px; margin-bottom: 8px; }
+        .filter-input {
+            flex: 1; padding: 9px 12px;
+            background: var(--bg2); border: 1px solid var(--border);
+            border-radius: var(--r-sm); color: var(--text0); font-size: 12px;
+            outline: none; transition: var(--transition);
+        }
+        .filter-input:focus { border-color: rgba(16,185,129,0.4); box-shadow: 0 0 0 3px rgba(16,185,129,0.1); }
+        .filter-input::placeholder { color: var(--text2); }
+        .btn-add {
+            padding: 9px 14px;
+            background: linear-gradient(135deg, var(--accent), var(--accent2));
+            color: #000; font-weight: 700; font-size: 12px;
+            border: none; border-radius: var(--r-sm);
+            cursor: pointer; transition: var(--transition);
+        }
+        .btn-add:hover { opacity: 0.85; transform: scale(1.03); }
 
-        .stat-value {
-            font-size: 28px;
-            font-weight: 700;
-            color: var(--accent);
-            font-variant-numeric: tabular-nums;
-            line-height: 1;
+        .filter-list { display: flex; flex-direction: column; gap: 6px; max-height: 160px; overflow-y: auto; }
+        .filter-tag {
+            display: flex; align-items: center; justify-content: space-between;
+            background: var(--bg2); border: 1px solid var(--border);
+            border-radius: var(--r-sm); padding: 7px 10px;
+        }
+        .filter-tag-domain { font-size: 12px; color: var(--accent); font-family: monospace; }
+        .btn-remove-filter {
+            background: none; border: none; color: var(--text2); cursor: pointer;
+            font-size: 16px; line-height: 1; padding: 0; width: 20px; height: 20px;
+            display: flex; align-items: center; justify-content: center;
+            border-radius: 4px; transition: var(--transition);
+        }
+        .btn-remove-filter:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+
+        .empty-msg { text-align: center; color: var(--text2); font-size: 12px; padding: 20px; }
+
+        /* ── Whitelist Panel ────────────────────────────── */
+        .whitelist-list { display: flex; flex-direction: column; gap: 6px; max-height: 300px; overflow-y: auto; }
+        .wl-item {
+            display: flex; align-items: center; justify-content: space-between;
+            background: rgba(245,158,11,0.07); border: 1px solid rgba(245,158,11,0.2);
+            border-radius: var(--r-sm); padding: 8px 12px;
+        }
+        .wl-domain { font-size: 12px; color: var(--yellow); }
+        .btn-remove-wl {
+            background: none; border: none; color: var(--text2); cursor: pointer;
+            font-size: 14px; padding: 2px 6px; border-radius: 4px; transition: var(--transition);
+        }
+        .btn-remove-wl:hover { color: var(--red); background: rgba(239,68,68,0.1); }
+
+        /* ── Logs Panel ─────────────────────────────────── */
+        .log-controls { display: flex; justify-content: flex-end; margin-bottom: 8px; }
+        .btn-clear-log {
+            background: none; border: 1px solid var(--border); color: var(--text2);
+            padding: 5px 10px; border-radius: var(--r-sm); font-size: 11px; cursor: pointer;
+            transition: var(--transition);
+        }
+        .btn-clear-log:hover { border-color: var(--red); color: var(--red); }
+        .log-list {
+            background: #050b14; border: 1px solid var(--border);
+            border-radius: var(--r-sm); padding: 8px;
+            max-height: 300px; overflow-y: auto; font-family: monospace; font-size: 10px;
+            color: var(--accent2); line-height: 1.6;
+        }
+        .log-entry { padding: 2px 0; border-bottom: 1px solid rgba(255,255,255,0.04); }
+        .log-entry:last-child { border: none; }
+        .log-entry.phishing { color: var(--red); }
+
+        /* ── Feedback ────────────────────────────────────── */
+        .toast {
+            position: fixed; bottom: 16px; left: 50%; transform: translateX(-50%);
+            background: var(--bg3); border: 1px solid var(--accent);
+            color: var(--accent); padding: 8px 18px; border-radius: 20px;
+            font-size: 12px; font-weight: 600; white-space: nowrap;
+            box-shadow: var(--shadow); z-index: 9999;
+            animation: toastIn 0.3s ease-out;
         }
 
-        /* Chart Section */
-        .chart-section {
-            background: linear-gradient(135deg, var(--bg-secondary) 0%, #1a2f4a 100%);
-            border: 1px solid var(--border);
-            border-radius: 12px;
-            padding: 16px;
-            margin-bottom: 20px;
-            backdrop-filter: blur(10px);
-            animation: slideUp 0.6s ease-out 0.5s backwards;
-        }
-
-        .chart-label {
-            font-size: 12px;
-            font-weight: 600;
-            color: var(--text-secondary);
-            text-transform: uppercase;
-            letter-spacing: 0.5px;
-            margin-bottom: 12px;
-        }
-
-        #chart {
-            width: 100%;
-            height: 100px;
-            border-radius: 8px;
-            background: rgba(0, 0, 0, 0.2);
-            display: block;
-        }
-
-        /* Controls Section */
-        .controls-section {
-            display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 12px;
-            margin-bottom: 16px;
-            animation: slideUp 0.6s ease-out 0.6s backwards;
-        }
-
-        button {
-            padding: 12px 16px;
-            border: none;
-            border-radius: 10px;
-            font-weight: 600;
-            font-size: 13px;
-            cursor: pointer;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-            text-transform: uppercase;
-            letter-spacing: 0.3px;
-            position: relative;
-            overflow: hidden;
-        }
-
-        button::before {
-            content: '';
-            position: absolute;
-            top: 0;
-            left: -100%;
-            width: 100%;
-            height: 100%;
-            background: rgba(255, 255, 255, 0.1);
-            transition: left 0.3s ease-out;
-        }
-
-        button:hover::before {
-            left: 100%;
-        }
-
-        #toggle, #reset {
-            background: linear-gradient(135deg, var(--accent), #34d399);
-            color: white;
-            box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
-        }
-
-        #toggle:hover, #reset:hover {
-            background: linear-gradient(135deg, var(--accent-hover), #10b981);
-            box-shadow: 0 8px 24px rgba(16, 185, 129, 0.4);
-            transform: translateY(-2px);
-        }
-
-        #toggle:active, #reset:active {
-            transform: translateY(0);
-        }
-
-        #whitelist {
-            background: var(--bg-tertiary);
-            color: var(--text-primary);
-            border: 1px solid var(--border);
-        }
-
-        #whitelist:hover {
-            background: rgba(52, 211, 153, 0.15);
-            border-color: var(--accent);
-            color: var(--accent);
-        }
-
-        /* Footer Info */
-        .footer-info {
-            font-size: 11px;
-            color: var(--text-secondary);
-            text-align: center;
-            padding: 12px 20px;
-            border-top: 1px solid var(--border);
-            animation: fadeIn 0.8s ease-out 0.8s backwards;
-        }
-
-        .status-badge {
-            display: inline-flex;
-            align-items: center;
-            gap: 6px;
-            padding: 4px 10px;
-            background: rgba(16, 185, 129, 0.15);
-            border: 1px solid var(--accent);
-            border-radius: 20px;
-            font-size: 11px;
-            font-weight: 600;
-            color: var(--accent);
-            margin-top: 4px;
-        }
-
-        .status-dot {
-            width: 6px;
-            height: 6px;
-            background: var(--accent);
-            border-radius: 50%;
-            animation: pulse 2s ease-in-out infinite;
-        }
-
-        /* Animations */
-        @keyframes slideDown {
-            from {
-                opacity: 0;
-                transform: translateY(-20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(20px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-
-        @keyframes fadeIn {
-            from {
-                opacity: 0;
-            }
-            to {
-                opacity: 1;
-            }
-        }
-
-        @keyframes pulse {
-            0%, 100% {
-                opacity: 1;
-            }
-            50% {
-                opacity: 0.5;
-            }
-        }
-
-        /* Smooth scrolling */
-        html {
-            scroll-behavior: smooth;
-        }
-
-        /* Better focus states */
-        button:focus {
-            outline: none;
-            box-shadow: 0 0 0 3px rgba(16, 185, 129, 0.2);
-        }
-
-        /* Loading state */
-        button:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-
-        button:disabled:hover {
-            transform: none;
-        }
+        /* ── Animations ─────────────────────────────────── */
+        @keyframes slideDown { from { opacity:0; transform:translateY(-16px); } to { opacity:1; transform:translateY(0); } }
+        @keyframes slideUp   { from { opacity:0; transform:translateY(12px);  } to { opacity:1; transform:translateY(0); } }
+        @keyframes fadeIn    { from { opacity:0; } to { opacity:1; } }
+        @keyframes pulse     { 0%,100% { opacity:1; } 50% { opacity:0.4; } }
+        @keyframes toastIn   { from { opacity:0; transform:translateX(-50%) translateY(8px); } to { opacity:1; transform:translateX(-50%) translateY(0); } }
     </style>
 </head>
 <body>
 
-    <header>
-        <h1>
-            <div class="header-icon">🛡️</div>
-            Shield
-        </h1>
-    </header>
-
-    <main>
-        <div class="stats-section">
-            <div class="stat-card">
-                <div class="stat-label">Total Blocked</div>
-                <div class="stat-value" id="total">0</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-label">This Site</div>
-                <div class="stat-value" id="site">0</div>
-            </div>
+<!-- ── Header ─────────────────────────────────────── -->
+<div class="header">
+    <div class="header-left">
+        <div class="logo">🛡️</div>
+        <div>
+            <h1>Shield</h1>
         </div>
+        <span class="version">v2.0</span>
+    </div>
+    <div class="master-toggle">
+        <span class="toggle-label" id="toggleLabel">ON</span>
+        <label class="switch">
+            <input type="checkbox" id="masterToggle" checked>
+            <span class="slider"></span>
+        </label>
+    </div>
+</div>
 
-        <div class="chart-section">
-            <div class="chart-label">Weekly Activity</div>
-            <canvas id="chart" width="300" height="100"></canvas>
-        </div>
+<!-- ── Site Status Bar ─────────────────────────────── -->
+<div class="site-bar">
+    <div class="site-info">
+        <span class="site-domain" id="siteDomain">Loading…</span>
+    </div>
+    <div class="status-pill protected" id="statusPill">
+        <div class="dot green" id="statusDot"></div>
+        <span id="statusText">Protected</span>
+    </div>
+</div>
 
-        <div class="controls-section">
-            <button id="toggle">Disable</button>
-            <button id="reset">Reset</button>
-        </div>
+<!-- ── Tab Navigation ─────────────────────────────── -->
+<div class="tabs">
+    <button class="tab active" data-tab="shield">🛡 Shield</button>
+    <button class="tab"        data-tab="filters">⚙ Filters</button>
+    <button class="tab"        data-tab="whitelist">✅ Whitelist</button>
+    <button class="tab"        data-tab="logs">📋 Logs</button>
+</div>
 
-        <div class="controls-section" style="grid-template-columns: 1fr;">
-            <button id="whitelist">Whitelist This Site</button>
+<!-- ── Panel: Shield ──────────────────────────────── -->
+<div class="panel active" id="panel-shield">
+    <div class="stats-grid">
+        <div class="stat-card">
+            <div class="stat-icon">🚫</div>
+            <div class="stat-value" id="totalBlocked">0</div>
+            <div class="stat-label">Total Blocked</div>
         </div>
-    </main>
-
-    <div class="footer-info">
-        <div class="status-badge">
-            <div class="status-dot"></div>
-            Active
+        <div class="stat-card phishing">
+            <div class="stat-icon">☣️</div>
+            <div class="stat-value" id="phishingBlocked">0</div>
+            <div class="stat-label">Phishing</div>
         </div>
-        <div style="margin-top: 8px;">Protecting your privacy</div>
+        <div class="stat-card site-card">
+            <div class="stat-icon">🌐</div>
+            <div class="stat-value" id="siteBlocked">0</div>
+            <div class="stat-label">This Site</div>
+        </div>
     </div>
 
-    <script src="popup.js"></script>
+    <div class="chart-card">
+        <div class="chart-header">
+            <span class="chart-title">Weekly Activity</span>
+            <span class="chart-total" id="chartTotal"></span>
+        </div>
+        <canvas id="chart" height="80"></canvas>
+    </div>
+
+    <div class="actions">
+        <button class="btn btn-whitelist" id="btnWhitelist">Whitelist Site</button>
+        <button class="btn btn-reset"     id="btnReset">Reset Stats</button>
+        <button class="btn btn-report"    id="btnReport">🚩 Report Missed Ad</button>
+    </div>
+
+    <div class="debug-row">
+        <span class="debug-row-label">🐛 Debug Mode</span>
+        <label class="switch">
+            <input type="checkbox" id="debugToggle">
+            <span class="slider"></span>
+        </label>
+    </div>
+</div>
+
+<!-- ── Panel: Filters ─────────────────────────────── -->
+<div class="panel" id="panel-filters">
+    <div class="filters-section">
+        <div class="section-title">Custom Block Rules</div>
+        <div class="filter-input-row">
+            <input type="text" class="filter-input" id="filterInput"
+                   placeholder="domain.com or subdomain.com">
+            <button class="btn-add" id="btnAddFilter">Add</button>
+        </div>
+        <div class="filter-list" id="filterList">
+            <div class="empty-msg">No custom filters yet</div>
+        </div>
+    </div>
+</div>
+
+<!-- ── Panel: Whitelist ───────────────────────────── -->
+<div class="panel" id="panel-whitelist">
+    <div class="section-title">Whitelisted Sites</div>
+    <div class="whitelist-list" id="whitelistList">
+        <div class="empty-msg">No sites whitelisted</div>
+    </div>
+</div>
+
+<!-- ── Panel: Logs ────────────────────────────────── -->
+<div class="panel" id="panel-logs">
+    <div class="log-controls">
+        <button class="btn-clear-log" id="btnClearLog">Clear Logs</button>
+    </div>
+    <div class="log-list" id="logList">
+        <div style="color:var(--text2);font-size:11px;">Enable Debug Mode to see logs.</div>
+    </div>
+</div>
+
+<script src="popup.js"></script>
 </body>
 </html>
