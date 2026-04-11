@@ -13,6 +13,8 @@
     let isEnabled      = true;
     let isWhitelisted  = false;
     let debugMode      = false;
+    let popupBlockerInjected       = false;
+    let notificationBlockerInjected = false;
 
     // ─── Bootstrap ─────────────────────────────────────────────
     chrome.runtime.sendMessage({ action: 'getState' }, (resp) => {
@@ -213,8 +215,9 @@
 
     function flushAdCount() {
         if (blockedAdBuffer > 0) {
-            chrome.runtime.sendMessage({ action: 'blockAd' });
+            const count = blockedAdBuffer;
             blockedAdBuffer = 0;
+            chrome.runtime.sendMessage({ action: 'blockAd', count });
         }
     }
 
@@ -296,10 +299,14 @@
      * intercept window.open in a content script.
      */
     function injectPopupBlocker() {
+        if (popupBlockerInjected) return;
+        popupBlockerInjected = true;
         try {
             const s   = document.createElement('script');
             s.textContent = `
 (function(){
+    if (window.__uab_popup_blocked) return;
+    window.__uab_popup_blocked = true;
     // Block unrequested popup windows
     const _open = window.open.bind(window);
     window.open = function(url, target, features) {
@@ -325,10 +332,14 @@
 
     // ─── Notification Permission Blocker ──────────────────────
     function injectNotificationBlocker() {
+        if (notificationBlockerInjected) return;
+        notificationBlockerInjected = true;
         try {
             const s   = document.createElement('script');
             s.textContent = `
 (function(){
+    if (window.__uab_notif_blocked) return;
+    window.__uab_notif_blocked = true;
     // Intercept permission requests for notifications/geolocation from spam sites
     const _req = Notification.requestPermission.bind(Notification);
     Notification.requestPermission = function(callback) {

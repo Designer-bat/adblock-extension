@@ -38,13 +38,13 @@ chrome.runtime.onMessage.addListener((request, sender, sendResponse) => {
     const action = request.action;
 
     if (action === 'blockAd') {
-        handleBlockedItem(sender.url, 'ad');
+        handleBlockedItem(sender.url, 'ad', request.count || 1);
         sendResponse({ success: true });
         return false;
     }
 
     if (action === 'blockPhishing') {
-        handleBlockedItem(sender.url, 'phishing');
+        handleBlockedItem(sender.url, 'phishing', 1);
         sendResponse({ success: true });
         return false;
     }
@@ -133,7 +133,7 @@ async function handleGetStats(sender, sendResponse) {
 
 // ─── Block Counter ────────────────────────────────────────────
 
-async function handleBlockedItem(pageUrl, type) {
+async function handleBlockedItem(pageUrl, type, count = 1) {
     try {
         const data   = await chrome.storage.sync.get([
             'totalBlocked', 'adsBlocked', 'phishingBlocked', 'perSite', 'weekly'
@@ -141,15 +141,15 @@ async function handleBlockedItem(pageUrl, type) {
         const domain = getDomain(pageUrl);
         const week   = getWeekKey();
 
-        const newTotal    = (data.totalBlocked    || 0) + 1;
-        const newAds      = (data.adsBlocked      || 0) + (type === 'ad'       ? 1 : 0);
-        const newPhishing = (data.phishingBlocked || 0) + (type === 'phishing' ? 1 : 0);
+        const newTotal    = (data.totalBlocked    || 0) + count;
+        const newAds      = (data.adsBlocked      || 0) + (type === 'ad'       ? count : 0);
+        const newPhishing = (data.phishingBlocked || 0) + (type === 'phishing' ? count : 0);
 
         const perSite = data.perSite || {};
-        perSite[domain] = (perSite[domain] || 0) + 1;
+        perSite[domain] = (perSite[domain] || 0) + count;
 
         const weekly = data.weekly || {};
-        weekly[week] = (weekly[week] || 0) + 1;
+        weekly[week] = (weekly[week] || 0) + count;
 
         await chrome.storage.sync.set({
             totalBlocked:    newTotal,

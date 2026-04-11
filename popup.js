@@ -76,6 +76,10 @@ async function loadStats() {
     // Debug toggle
     debugToggle.checked = data.debugMode || false;
 
+    // Sync whitelist button label
+    const btnWl = document.getElementById('btnWhitelist');
+    if (btnWl) btnWl.textContent = isWhitelisted ? 'Un-whitelist' : 'Whitelist Site';
+
     // Status pill
     updateStatusPill();
 
@@ -154,6 +158,7 @@ document.getElementById('btnReset').addEventListener('click', async () => {
 // ─── Report Site ───────────────────────────────────────────
 document.getElementById('btnReport').addEventListener('click', async () => {
     if (!currentDomain || currentDomain === '—') return;
+    if (!confirm(`Report "${currentDomain}" for missed ads?\n\nThis helps improve blocking rules.`)) return;
     await chrome.runtime.sendMessage({ action: 'reportSite', domain: currentDomain });
     showToast(`${currentDomain} reported — thank you!`);
 });

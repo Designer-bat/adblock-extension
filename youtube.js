@@ -208,46 +208,40 @@
 
     // ─── Anti-Adblock Neutralization ───────────────────────────
     function neutralizeAntiAdblock() {
-        // Patch ytInitialPlayerResponse to strip ad-related metadata before YT reads it
+        // Inject into page context so overrides affect YouTube's own JS
         try {
-            Object.defineProperty(window, 'ytInitialPlayerResponse', {
-                get() { return this._ytIPR; },
-                set(val) {
-                    if (val && val.adBreakHeartbeatParams) {
-                        delete val.adBreakHeartbeatParams;
-                    }
-                    if (val && val.adPlacements) {
-                        val.adPlacements = [];
-                    }
-                    if (val && val.playerAds) {
-                        val.playerAds = [];
-                    }
-                    this._ytIPR = val;
-                },
-                configurable: true
-            });
-        } catch (_) {}
+            const s = document.createElement('script');
+            s.textContent = `
+(function(){
+    if (window.__uab_yt_neutralized) return;
+    window.__uab_yt_neutralized = true;
 
-        // Prevent YT from detecting extension via ad-element probe
-        // YT checks for #ad-container-root to verify ads loaded; spoof it
-        const origGetElementById = document.getElementById.bind(document);
-        document.getElementById = function (id) {
-            if (id === 'ad-container-root' || id === 'player-ads') {
-                // Return a hidden dummy element so detection thinks ads are present
-                const dummy = document.createElement('div');
-                dummy.style.cssText = 'display:none!important;width:1px;height:1px;';
-                return dummy;
-            }
-            return origGetElementById(id);
-        };
+    // Patch ytInitialPlayerResponse to strip ad metadata
+    try {
+        Object.defineProperty(window, 'ytInitialPlayerResponse', {
+            get() { return this._ytIPR; },
+            set(val) {
+                if (val && val.adBreakHeartbeatParams) delete val.adBreakHeartbeatParams;
+                if (val && val.adPlacements) val.adPlacements = [];
+                if (val && val.playerAds) val.playerAds = [];
+                this._ytIPR = val;
+            },
+            configurable: true
+        });
+    } catch(_){}
+})();`;
+            s.setAttribute('data-uab-yt', '1');
+            (document.head || document.documentElement).prepend(s);
+            s.remove();
+        } catch (_) {}
 
         log('Anti-adblock neutralization applied');
     }
 
     // ─── Notification Helper ───────────────────────────────────
     function notifyBlocked(count) {
-        for (let i = 0; i < count; i++) {
-            chrome.runtime.sendMessage({ action: 'blockAd' });
+        if (count > 0) {
+            chrome.runtime.sendMessage({ action: 'blockAd', count });
         }
     }
 

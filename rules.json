@@ -364,15 +364,6 @@
     "priority": 1,
     "action": { "type": "block" },
     "condition": {
-      "urlFilter": "||connect.facebook.net^",
-      "resourceTypes": ["script"]
-    }
-  },
-  {
-    "id": 42,
-    "priority": 1,
-    "action": { "type": "block" },
-    "condition": {
       "urlFilter": "||pixel.facebook.com^",
       "resourceTypes": ["script", "image", "xhr", "fetch", "other"]
     }
