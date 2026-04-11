@@ -215,7 +215,7 @@ async function syncCustomFilterRules() {
         action:   { type: 'block' },
         condition: {
             urlFilter:     `||${domain}^`,
-            resourceTypes: ['script', 'image', 'stylesheet', 'xhr', 'fetch', 'sub_frame', 'media', 'other']
+            resourceTypes: ['script', 'image', 'stylesheet', 'xmlhttprequest', 'sub_frame', 'media', 'other']
         }
     }));
 
@@ -277,7 +277,7 @@ async function syncWhitelistRules() {
         action:   { type: 'allow' },
         condition: {
             urlFilter:     `||${domain}^`,
-            resourceTypes: ['script', 'image', 'stylesheet', 'xhr', 'fetch', 'sub_frame', 'media', 'other', 'main_frame']
+            resourceTypes: ['script', 'image', 'stylesheet', 'xmlhttprequest', 'sub_frame', 'media', 'other', 'main_frame']
         }
     }));
 
