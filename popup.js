@@ -1,15 +1,15 @@
+
 // ============================================================
 // Ultimate Ad Blocker v2.0 — Popup Controller
-// Handles: tab switching, stats display, chart, toggles,
-//          whitelist mgmt, custom filters, debug logs
+// Responsive, Localized, Clean UI
 // ============================================================
-
 'use strict';
 
-// ─── DOM Refs ──────────────────────────────────────────────
 const masterToggle    = document.getElementById('masterToggle');
-const toggleLabel     = document.getElementById('toggleLabel');
 const debugToggle     = document.getElementById('debugToggle');
+const themeToggleBtn  = document.getElementById('themeToggleBtn');
+const langBtn         = document.getElementById('langBtn');
+const langModal       = document.getElementById('langModal');
 const siteDomainEl    = document.getElementById('siteDomain');
 const statusPill      = document.getElementById('statusPill');
 const statusDot       = document.getElementById('statusDot');
@@ -23,7 +23,12 @@ const filterList      = document.getElementById('filterList');
 const whitelistList   = document.getElementById('whitelistList');
 const logList         = document.getElementById('logList');
 
-// ─── Tab Navigation ────────────────────────────────────────
+let currentDomain = '';
+let isWhitelisted  = false;
+let isEnabled      = true;
+let isDarkMode     = false;
+
+// ─── Tabs ──────────────────────────────────────────────────
 document.querySelectorAll('.tab').forEach(tab => {
     tab.addEventListener('click', () => {
         const target = tab.dataset.tab;
@@ -32,357 +37,293 @@ document.querySelectorAll('.tab').forEach(tab => {
         tab.classList.add('active');
         document.getElementById(`panel-${target}`)?.classList.add('active');
 
-        // Load data for the newly visible tab
         if (target === 'logs') loadLogs();
         if (target === 'whitelist') loadWhitelist();
         if (target === 'filters') loadFilters();
     });
 });
 
-// ─── State ─────────────────────────────────────────────────
-let currentDomain = '';
-let isWhitelisted  = false;
-let isEnabled      = true;
-
-// ─── Init ──────────────────────────────────────────────────
+// ─── Initialization ─────────────────────────────────────────
 async function init() {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    const tab  = tabs[0];
-
-    try {
-        currentDomain = tab?.url ? new URL(tab.url).hostname : '—';
-    } catch (_) {
-        currentDomain = '—';
-    }
+    try { currentDomain = tabs[0]?.url ? new URL(tabs[0].url).hostname : '—'; } 
+    catch (_) { currentDomain = '—'; }
     siteDomainEl.textContent = currentDomain;
 
-    loadStats();
-}
-
-// ─── Stats & Status ────────────────────────────────────────
-async function loadStats() {
-    const data = await storageGet([
-        'enabled', 'totalBlocked', 'adsBlocked', 'phishingBlocked',
-        'perSite', 'weekly', 'whitelist', 'debugMode'
-    ]);
+    const data = await new Promise(r => chrome.storage.sync.get(['enabled', 'totalBlocked', 'adsBlocked', 'phishingBlocked', 'perSite', 'weekly', 'whitelist', 'debugMode', 'darkMode', 'language'], r));
 
     isEnabled    = data.enabled !== false;
+    isDarkMode   = data.darkMode || false;
     isWhitelisted = (data.whitelist || []).includes(currentDomain);
+    
+    // Setup i18n
+    if (data.language) currentLang = data.language;
+    applyLanguage(currentLang);
+    buildLangMenu();
 
-    // Master toggle
     masterToggle.checked = isEnabled;
-    toggleLabel.textContent = isEnabled ? 'ON' : 'OFF';
-
-    // Debug toggle
     debugToggle.checked = data.debugMode || false;
-
-    // Sync whitelist button label
-    const btnWl = document.getElementById('btnWhitelist');
-    if (btnWl) btnWl.textContent = isWhitelisted ? 'Un-whitelist' : 'Whitelist Site';
-
-    // Status pill
+    
+    applyTheme();
     updateStatusPill();
+    updateWhitelistBtn();
 
-    // Counters (animated)
     animateCounter(totalBlockedEl, data.totalBlocked || 0);
-    animateCounter(phishingEl,     data.phishingBlocked || 0);
-    animateCounter(siteBlockedEl,  (data.perSite || {})[currentDomain] || 0);
+    animateCounter(phishingEl, data.phishingBlocked || 0);
+    animateCounter(siteBlockedEl, (data.perSite || {})[currentDomain] || 0);
 
-    // Chart
     drawChart(data.weekly || {});
 }
 
-function updateStatusPill() {
-    statusPill.className = 'status-pill';
-    statusDot.className  = 'dot';
+// ─── Language Logic ─────────────────────────────────────────
+function buildLangMenu() {
+    langModal.innerHTML = '';
+    Object.keys(translations).forEach(key => {
+        const btn = document.createElement('button');
+        btn.className = `lang-option ${key === currentLang ? 'active' : ''}`;
+        btn.textContent = translations[key].langName;
+        btn.addEventListener('click', async () => {
+            currentLang = key;
+            applyLanguage(currentLang);
+            await chrome.storage.sync.set({ language: key });
+            langModal.classList.remove('visible');
+            buildLangMenu(); 
+            updateStatusPill();
+            updateWhitelistBtn();
+            if(document.querySelector('.tab[data-tab="filters"].active')) loadFilters();
+            if(document.querySelector('.tab[data-tab="whitelist"].active')) loadWhitelist();
+            if(document.querySelector('.tab[data-tab="logs"].active')) loadLogs();
+        });
+        langModal.appendChild(btn);
+    });
+}
 
+langBtn.addEventListener('click', (e) => {
+    e.stopPropagation();
+    langModal.classList.toggle('visible');
+});
+document.addEventListener('click', () => langModal.classList.remove('visible'));
+
+// ─── Status Update ──────────────────────────────────────────
+function updateStatusPill() {
+    statusPill.className = 'status-badge';
     if (!isEnabled) {
         statusPill.classList.add('disabled');
-        statusDot.classList.add('gray');
-        statusText.textContent = 'Disabled';
+        statusText.textContent = translations[currentLang].statusDisabled;
     } else if (isWhitelisted) {
         statusPill.classList.add('whitelisted');
-        statusDot.classList.add('yellow');
-        statusText.textContent = 'Whitelisted';
+        statusText.textContent = translations[currentLang].statusWhitelisted;
     } else {
         statusPill.classList.add('protected');
-        statusDot.classList.add('green');
-        statusText.textContent = 'Protected';
+        statusText.textContent = translations[currentLang].statusProtected;
     }
 }
 
-// ─── Master Toggle ─────────────────────────────────────────
+function updateWhitelistBtn() {
+    const btnSpan = document.querySelector('#btnWhitelist span');
+    if(btnSpan) btnSpan.textContent = isWhitelisted ? translations[currentLang].unwhitelistBtn : translations[currentLang].whitelistBtn;
+}
+
+// ─── Event Listeners ────────────────────────────────────────
 masterToggle.addEventListener('change', async () => {
     isEnabled = masterToggle.checked;
-    toggleLabel.textContent = isEnabled ? 'ON' : 'OFF';
     await chrome.storage.sync.set({ enabled: isEnabled });
     updateStatusPill();
 });
 
-// ─── Debug Toggle ──────────────────────────────────────────
+themeToggleBtn?.addEventListener('click', async () => {
+    isDarkMode = !isDarkMode;
+    applyTheme();
+    await chrome.storage.sync.set({ darkMode: isDarkMode });
+});
+
 debugToggle.addEventListener('change', async () => {
     await chrome.storage.sync.set({ debugMode: debugToggle.checked });
 });
 
-// ─── Whitelist Button ──────────────────────────────────────
 document.getElementById('btnWhitelist').addEventListener('click', async () => {
     if (!currentDomain || currentDomain === '—') return;
-
     if (isWhitelisted) {
-        // Remove from whitelist
         await chrome.runtime.sendMessage({ action: 'removeFromWhitelist', domain: currentDomain });
         isWhitelisted = false;
-        showToast(`${currentDomain} removed from whitelist`);
+        showToast(`${currentDomain} removed`);
     } else {
         await chrome.runtime.sendMessage({ action: 'addToWhitelist', domain: currentDomain });
         isWhitelisted = true;
-        showToast(`${currentDomain} whitelisted`);
+        showToast(`${currentDomain} allowed`);
     }
-
-    document.getElementById('btnWhitelist').textContent = isWhitelisted ? 'Un-whitelist' : 'Whitelist Site';
     updateStatusPill();
+    updateWhitelistBtn();
     loadWhitelist();
 });
 
-// ─── Reset Stats ───────────────────────────────────────────
 document.getElementById('btnReset').addEventListener('click', async () => {
-    if (!confirm('Reset all blocked stats?')) return;
     await chrome.storage.sync.set({ totalBlocked: 0, adsBlocked: 0, phishingBlocked: 0, perSite: {}, weekly: {} });
-    animateCounter(totalBlockedEl, 0);
-    animateCounter(phishingEl, 0);
-    animateCounter(siteBlockedEl, 0);
+    animateCounter(totalBlockedEl, 0); animateCounter(phishingEl, 0); animateCounter(siteBlockedEl, 0);
     drawChart({});
     showToast('Stats reset');
 });
 
-// ─── Report Site ───────────────────────────────────────────
 document.getElementById('btnReport').addEventListener('click', async () => {
     if (!currentDomain || currentDomain === '—') return;
-    if (!confirm(`Report "${currentDomain}" for missed ads?\n\nThis helps improve blocking rules.`)) return;
     await chrome.runtime.sendMessage({ action: 'reportSite', domain: currentDomain });
-    showToast(`${currentDomain} reported — thank you!`);
+    showToast(`Reported! Thanks.`);
 });
 
-// ─── Custom Filters ────────────────────────────────────────
-document.getElementById('btnAddFilter').addEventListener('click', addCustomFilter);
-filterInput.addEventListener('keydown', (e) => { if (e.key === 'Enter') addCustomFilter(); });
+// ─── Filter Manager ─────────────────────────────────────────
+document.getElementById('btnAddFilter').addEventListener('click', addFilter);
+filterInput.addEventListener('keydown', e => { if(e.key==='Enter') addFilter() });
 
-async function addCustomFilter() {
+async function addFilter() {
     let domain = filterInput.value.trim().toLowerCase();
     if (!domain) return;
-    // Strip protocol/path if user pasted a full URL
     try { domain = new URL(domain.includes('://') ? domain : `http://${domain}`).hostname; } catch (_) {}
     if (!domain) return;
-
     await chrome.runtime.sendMessage({ action: 'addCustomFilter', domain });
     filterInput.value = '';
-    showToast(`${domain} blocked`);
+    showToast(`${domain} added`);
     loadFilters();
 }
 
 async function loadFilters() {
-    const data    = await storageGet('customFilters');
+    const data = await new Promise(r => chrome.storage.sync.get('customFilters', r));
     const filters = data.customFilters || [];
-
-    if (filters.length === 0) {
-        filterList.innerHTML = '<div class="empty-msg">No custom filters yet</div>';
+    if (!filters.length) {
+        filterList.innerHTML = `<div class="empty-msg">${translations[currentLang].emptyFilters}</div>`;
         return;
     }
-
     filterList.innerHTML = filters.map(f => `
-        <div class="filter-tag">
-            <span class="filter-tag-domain">${escHtml(f)}</span>
-            <button class="btn-remove-filter" data-domain="${escHtml(f)}" title="Remove">×</button>
-        </div>
-    `).join('');
-
-    filterList.querySelectorAll('.btn-remove-filter').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const d = btn.dataset.domain;
-            await chrome.runtime.sendMessage({ action: 'removeCustomFilter', domain: d });
-            showToast(`${d} removed`);
-            loadFilters();
-        });
-    });
+        <div class="list-item">
+            <span class="list-domain">${escHtml(f)}</span>
+            <button class="btn-del" data-domain="${escHtml(f)}"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        </div>`).join('');
+    filterList.querySelectorAll('.btn-del').forEach(b => b.addEventListener('click', async () => {
+        await chrome.runtime.sendMessage({ action: 'removeCustomFilter', domain: b.dataset.domain });
+        loadFilters();
+    }));
 }
 
-// ─── Whitelist Manager ─────────────────────────────────────
+// ─── Whitelist Manager ──────────────────────────────────────
 async function loadWhitelist() {
-    const data = await storageGet('whitelist');
-    const wl   = data.whitelist || [];
-
-    if (wl.length === 0) {
-        whitelistList.innerHTML = '<div class="empty-msg">No sites whitelisted</div>';
+    const data = await new Promise(r => chrome.storage.sync.get('whitelist', r));
+    const wl = data.whitelist || [];
+    if (!wl.length) {
+        whitelistList.innerHTML = `<div class="empty-msg">${translations[currentLang].emptyWhitelist}</div>`;
         return;
     }
-
     whitelistList.innerHTML = wl.map(d => `
-        <div class="wl-item">
-            <span class="wl-domain">${escHtml(d)}</span>
-            <button class="btn-remove-wl" data-domain="${escHtml(d)}" title="Remove">✕</button>
-        </div>
-    `).join('');
-
-    whitelistList.querySelectorAll('.btn-remove-wl').forEach(btn => {
-        btn.addEventListener('click', async () => {
-            const d = btn.dataset.domain;
-            await chrome.runtime.sendMessage({ action: 'removeFromWhitelist', domain: d });
-            if (d === currentDomain) {
-                isWhitelisted = false;
-                updateStatusPill();
-                document.getElementById('btnWhitelist').textContent = 'Whitelist Site';
-            }
-            showToast(`${d} removed from whitelist`);
-            loadWhitelist();
-        });
-    });
+        <div class="list-item wl">
+            <span class="list-domain">${escHtml(d)}</span>
+            <button class="btn-del" data-domain="${escHtml(d)}"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg></button>
+        </div>`).join('');
+    whitelistList.querySelectorAll('.btn-del').forEach(b => b.addEventListener('click', async () => {
+        const d = b.dataset.domain;
+        await chrome.runtime.sendMessage({ action: 'removeFromWhitelist', domain: d });
+        if (d === currentDomain) {
+            isWhitelisted = false; updateStatusPill(); updateWhitelistBtn();
+        }
+        loadWhitelist();
+    }));
 }
 
-// ─── Debug Logs ────────────────────────────────────────────
+// ─── Logs Manager ───────────────────────────────────────────
 async function loadLogs() {
     const resp = await chrome.runtime.sendMessage({ action: 'getLogs' });
     const logs = resp?.logs || [];
-
-    if (logs.length === 0) {
-        logList.innerHTML = '<div style="color:var(--text2);font-size:11px;">No log entries. Enable Debug Mode to capture events.</div>';
+    if (!logs.length) {
+        logList.innerHTML = `<div class="empty-msg">${translations[currentLang].emptyLogs}</div>`;
         return;
     }
-
-    logList.innerHTML = logs.map(entry => {
-        const isPhishing = entry.includes('[PHISHING');
-        return `<div class="log-entry${isPhishing ? ' phishing' : ''}">${escHtml(entry)}</div>`;
-    }).join('');
+    logList.innerHTML = logs.map(entry => `
+        <div class="list-item log ${entry.includes('[PHISHING')?'phishing':(entry.includes('Blocked:')?'ad':'')}">
+            ${escHtml(entry)}
+        </div>`).join('');
 }
-
 document.getElementById('btnClearLog').addEventListener('click', async () => {
     await chrome.runtime.sendMessage({ action: 'clearLogs' });
     loadLogs();
-    showToast('Logs cleared');
 });
 
-// ─── Chart ─────────────────────────────────────────────────
+// ─── Charting & UI Utils ────────────────────────────────────
+function applyTheme() {
+    if (isDarkMode) {
+        document.body.classList.add('dark');
+        themeToggleBtn.innerHTML = '<svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="5"/><path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M17.36 17.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M17.36 6.64l1.42-1.42"/></svg>';
+    } else {
+        document.body.classList.remove('dark');
+        themeToggleBtn.innerHTML = '<svg viewBox="0 0 24 24"><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>';
+    }
+    drawChart({}); // Trigger redraw with empty data, will be updated by interval
+}
+
 function drawChart(data = {}) {
     const canvas = document.getElementById('chart');
     if (!canvas) return;
-    const ctx  = canvas.getContext('2d');
-    const dpr  = window.devicePixelRatio || 1;
-    const W    = canvas.offsetWidth  || 320;
-    const H    = 80;
+    const ctx = canvas.getContext('2d');
+    const dpr = window.devicePixelRatio || 1;
+    const W = canvas.offsetWidth || 340;
+    const H = 80;
+    canvas.width = W * dpr; canvas.height = H * dpr;
+    ctx.scale(dpr, dpr); ctx.clearRect(0,0,W,H);
 
-    canvas.width  = W * dpr;
-    canvas.height = H * dpr;
-    ctx.scale(dpr, dpr);
-    ctx.clearRect(0, 0, W, H);
+    const values = Object.values(data).filter(v => typeof v ==='number').slice(-7);
+    const sum = values.reduce((a,b)=>a+b,0);
+    if(chartTotalEl) chartTotalEl.textContent = sum;
 
-    const values = Object.values(data).filter(v => typeof v === 'number').slice(-7);
-    const weekSum = values.reduce((a, b) => a + b, 0);
-    if (chartTotalEl) chartTotalEl.textContent = weekSum > 0 ? `${weekSum} this week` : '';
-
-    if (values.length === 0) {
-        ctx.fillStyle = 'rgba(100,116,139,0.6)';
-        ctx.font = '11px system-ui';
-        ctx.textAlign = 'center';
-        ctx.fillText('No data yet', W / 2, H / 2 + 4);
-        return;
-    }
-
-    const max      = Math.max(...values, 1);
-    const padL     = 8, padR = 8, padB = 4, padT = 14;
-    const plotW    = W - padL - padR;
-    const plotH    = H - padT - padB;
-    const barW     = Math.floor(plotW / 7) - 4;
-    const gap      = Math.floor(plotW / 7);
-
+    if (!values.length) return;
+    const max = Math.max(...values, 1);
+    const padL = 4, gap = W / values.length, plotH = H - 16, barW = gap * 0.75;
+    
+    // Style
+    const accent = isDarkMode ? 'rgba(96, 165, 250, 0.9)' : 'rgba(59, 130, 246, 0.9)';
+    
     values.forEach((val, i) => {
-        const bh   = Math.max((val / max) * plotH, val > 0 ? 3 : 0);
-        const x    = padL + i * gap;
-        const y    = padT + plotH - bh;
-
-        const grad = ctx.createLinearGradient(0, y, 0, y + bh);
-        grad.addColorStop(0, 'rgba(16,185,129,0.9)');
-        grad.addColorStop(1, 'rgba(5,150,105,0.5)');
-        ctx.fillStyle = grad;
-        ctx.shadowColor = 'rgba(16,185,129,0.3)';
-        ctx.shadowBlur  = 6;
-
-        // Rounded top bar
-        const r2 = Math.min(3, bh / 2);
+        const bh = Math.max((val/max)*plotH, val>0?4:0);
+        const x = padL + i*gap + (gap-barW)/2;
+        const y = H - 4 - bh;
+        ctx.fillStyle = accent;
+        // Rounded bars
         ctx.beginPath();
-        ctx.moveTo(x, y + r2);
-        ctx.arcTo(x, y, x + r2, y, r2);
-        ctx.arcTo(x + barW, y, x + barW, y + r2, r2);
-        ctx.lineTo(x + barW, y + bh);
-        ctx.lineTo(x, y + bh);
-        ctx.closePath();
+        ctx.moveTo(x, y+4); ctx.arcTo(x, y, x+4, y, Math.min(4, bh/2));
+        ctx.arcTo(x+barW, y, x+barW, y+4, Math.min(4, bh/2));
+        ctx.lineTo(x+barW, y+bh); ctx.lineTo(x, y+bh);
         ctx.fill();
-        ctx.shadowBlur = 0;
-
-        if (val > 0) {
-            ctx.fillStyle   = 'rgba(240,246,255,0.7)';
-            ctx.font        = `bold ${Math.min(10, barW)}px system-ui`;
-            ctx.textAlign   = 'center';
-            ctx.fillText(val > 999 ? `${(val/1000).toFixed(1)}k` : val, x + barW / 2, y - 3);
-        }
     });
-
-    // X-axis
-    ctx.strokeStyle = 'rgba(71,85,105,0.4)';
-    ctx.lineWidth   = 1;
-    ctx.beginPath();
-    ctx.moveTo(padL, H - padB);
-    ctx.lineTo(W - padR, H - padB);
-    ctx.stroke();
 }
 
-// ─── Counter Animation ─────────────────────────────────────
 function animateCounter(el, target) {
-    if (!el) return;
-    const start    = parseInt(el.textContent, 10) || 0;
-    if (start === target) { el.textContent = target; return; }
-    const duration = 500;
-    const t0       = performance.now();
-    const diff     = target - start;
-
-    function tick(now) {
-        const p    = Math.min((now - t0) / duration, 1);
-        const ease = 1 - Math.pow(1 - p, 3);
-        el.textContent = Math.round(start + diff * ease);
-        if (p < 1) requestAnimationFrame(tick);
+    if(!el) return;
+    const s = parseInt(el.textContent) || 0;
+    if(s===target){el.textContent=target;return;}
+    const t0 = performance.now();
+    const diff = target - s;
+    function tick(now){
+        const p = Math.min((now-t0)/500, 1);
+        el.textContent = Math.round(s + diff * (1 - Math.pow(1-p,3)));
+        if(p<1) requestAnimationFrame(tick);
     }
     requestAnimationFrame(tick);
 }
 
-// ─── Toast Notification ────────────────────────────────────
-let toastTimer = null;
+let toastTimer;
 function showToast(msg) {
-    let existing = document.querySelector('.toast');
-    if (existing) existing.remove();
+    document.querySelector('.toast')?.remove();
     clearTimeout(toastTimer);
-    const toast = document.createElement('div');
-    toast.className = 'toast';
-    toast.textContent = msg;
+    const toast = document.createElement('div'); toast.className = 'toast'; toast.textContent = msg;
     document.body.appendChild(toast);
-    toastTimer = setTimeout(() => toast.remove(), 2200);
+    toastTimer = setTimeout(()=>toast.remove(), 2000);
 }
 
-// ─── Utils ─────────────────────────────────────────────────
-function storageGet(keys) {
-    return new Promise(resolve => chrome.storage.sync.get(keys, resolve));
-}
+function escHtml(str) { return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[m]); }
 
-function escHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
-
-// ─── Auto-refresh ──────────────────────────────────────────
 init();
-// Refresh stats every 3 seconds
-setInterval(() => {
-    const activeTab = document.querySelector('.tab.active')?.dataset.tab;
-    if (activeTab === 'shield') loadStats();
-    if (activeTab === 'logs')   loadLogs();
-}, 3000);
+setInterval(()=>{
+    const active = document.querySelector('.tab.active')?.dataset.tab;
+    if(active==='shield') chrome.storage.sync.get(['totalBlocked','phishingBlocked','perSite','weekly'], d=>{
+        animateCounter(totalBlockedEl, d.totalBlocked || 0);
+        animateCounter(phishingEl, d.phishingBlocked || 0);
+        animateCounter(siteBlockedEl, (d.perSite||{})[currentDomain] || 0);
+        drawChart(d.weekly||{});
+    });
+    if(active==='logs') loadLogs();
+}, 2500);
