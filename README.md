@@ -1,336 +1,109 @@
-# 🚫 Ultimate Ad Blocker (Chrome Extension)
+# 🛡️ Shield - Ultimate Ad Blocker (Chrome Extension)
 
-A fast, lightweight, and privacy-focused ad blocker built using **Manifest V3**.
-This extension blocks unwanted ads and popups while maintaining performance and stability across modern websites.
+A lightning-fast, lightweight, and privacy-focused ad blocker powered by **Manifest V3**.  
+Designed to deliver a seamless web experience by stopping intrusive ads, skipping YouTube video ads, and protecting against phishing trackers without logging what you do.
 
 ---
 
-## ✨ Features
+## ✨ Key Features
 
-* 🚫 Blocks common ad networks (Google Ads, DoubleClick, Amazon Ads, etc.)
-* 🧹 Removes popups, banners, and overlay elements
-* 🔢 Real-time badge counter (shows number of blocked requests)
-* ⚡ Built with **declarativeNetRequest** for high performance
-* 🔒 No data collection – works fully locally
-* 🎛️ Simple ON/OFF toggle interface
+* 🚫 **Comprehensive Network Blocking:** Uses the `declarativeNetRequest` API to kill trackers and ad requests before they even load.
+* 🎥 **YouTube Ad Skipping:** Specialized, custom DOM injectors seamlessly bypass unskippable video ads.
+* 🎨 **Premium UI/UX:** A beautiful, card-based interface with subtle micro-animations and native **Dark Mode** & Light Mode support.
+* 🌐 **Built-in Localization (i18n):** Instantly switch between 6+ languages dynamically from the popup, no reloads required!
+* 📊 **Live Analytics & Charts:** Visual weekly charting and real-time blocked stat counters inside your popup.
+* 🎛️ **Granular Control:** Create custom domain filters, whitelist your favorite sites with one click, and view a real-time debug event log.
+* 🔒 **100% Privacy Focused:** Works entirely offline. Zero analytics, zero telemetry.
 
 ---
 
 ## 🧠 How It Works
 
-This extension uses two main techniques:
+This extension leverages multiple overlapping techniques to ensure the web stays clean:
 
-### 1. Network-Level Blocking
+### 1. Network-Level Blocking (`declarativeNetRequest`)
+By loading dynamic and static rules natively via `rules.json`, Shield intercepts connections and nullifies tracking scripts and ad networks instantly. It saves your bandwidth and significantly improves load times.
 
-* Uses Chrome’s **declarativeNetRequest API**
-* Blocks requests to known ad domains before they load
-* Improves speed and reduces bandwidth usage
+### 2. DOM Cleansing (`content.js` & `youtube.js`)
+Removes leftover structural elements from pages—like blank banners or modal popups. It also injects highly specialized scripts exclusively onto YouTube to intercept video-ad triggers.
 
-### 2. DOM Cleaning
+### 3. Service Worker State & Performance (`background.js`)
+Tracks stats, caches data safely utilizing Chrome's Sync storage, and manages real-time messaging between your browser tabs and the UI.
 
-* Removes leftover ad elements from the page
-* Targets:
+---
 
-  * iframes with ads
-  * banner elements
-  * popup dialogs and overlays
-
-### 3. Badge Counter
-
-* Tracks blocked requests
-* Displays count on extension icon in real time
+## 🌐 Supported Languages
+Shield includes a dynamic language selector allowing users natively to view the extension in:
+* 🇺🇸 English
+* 🇪🇸 Spanish (Español)
+* 🇫🇷 French (Français)
+* 🇩🇪 German (Deutsch)
+* 🇳🇵 Nepali (नेपाली)
+* 🇨🇳 Chinese (中文)
 
 ---
 
 ## 📁 Project Structure
 
-```
+```text
 ultimate-ad-blocker/
 │
-├── manifest.json        # Extension configuration (Manifest V3)
-├── rules.json           # Network blocking rules
-├── content.js           # DOM ad & popup remover
-├── background.js        # Badge counter logic
-├── popup.html           # Extension UI
-├── popup.js             # UI logic (toggle + stats)
-├── icon128.png          # Extension icon
+├── manifest.json        # Extension config (Manifest V3 permissions)
+├── rules.json           # Native declarativeNetRequest network block rules
+├── background.js        # Background service worker (Stats & state mgmt)
+├── content.js           # Generic DOM-level ad & overlay remover
+├── youtube.js           # Dedicated YouTube ad-blocking mechanism
+├── popup.html           # Core UI popup Layout 
+├── popup.js             # UI interactions, graphing, and logic mapping
+├── i18n.js              # Localization strings & dynamic translation engine
+├── icon128.png          # App branding & extension icons
 ```
 
 ---
 
-## 🚀 Installation (Development)
+## 🚀 Installation for Users & Developers
 
-1. Clone or download this repository
-2. Open Chrome and go to:
-   chrome://extensions/
-3. Enable **Developer Mode**
-4. Click **Load unpacked**
-5. Select the project folder
-
----
-
-## 📦 Build & Publish
-
-1. Zip the project folder
-2. Go to Chrome Web Store Developer Dashboard
-3. Upload the ZIP file
-4. Fill in listing details (name, description, screenshots)
-5. Submit for review
+1. **Clone or Download** this repository.
+2. Open Chrome and type `chrome://extensions/` in the URL bar.
+3. Toggle **Developer mode** on (top right corner).
+4. Click **Load unpacked** and select the folder you downloaded containing the extension files.
+5. 📌 **Pin** the extension to your toolbar. Test it out on a media site, toggle your languages, and try dark mode!
 
 ---
 
-## 🔒 Privacy Policy
+## ⚙️ Extension Customization
 
-This extension:
+### Adding Custom Filters
+Click the **Filters** tab within the extension popup and type the domain you wish to block (e.g., `ads.annoying-site.com`). Shield immediately targets it.
 
-* ❌ Does NOT collect user data
-* ❌ Does NOT track browsing activity
-* ✅ Runs entirely on the user’s device
-* ✅ Only blocks ad-related requests
-
----
-
-## ⚠️ Limitations
-
-* Cannot block every ad (especially advanced or embedded ads)
-* Some websites may break if they rely heavily on ad scripts
-* Badge counter reflects network-blocked requests only
+### Whitelisting a Website
+To support a creator, open the extension while on their site and click **"Whitelist Site"**. Shield will temporarily deactivate its rules for that specific domain.
 
 ---
 
-## 💡 Future Improvements
+## 🔒 Privacy Guarantee
 
-* 🌐 Website whitelist feature
-* 📊 Detailed analytics dashboard
-* 🎨 Improved UI/UX design
-* 🔄 Dynamic filter list updates
-* 🎯 Per-site ad blocking stats
+This extension exists for your protection and privacy. 
+* ❌ **NO** data scraping or user telemetry.
+* ❌ **NO** browsing history tracking.
+* ✅ Runs 100% on-device utilizing modern local-storage APIs.
 
 ---
 
 ## 🛠️ Tech Stack
 
-* JavaScript (Vanilla)
-* Chrome Extension API (Manifest V3)
-* declarativeNetRequest API
-
----
-
-## 📌 Disclaimer
-
-This project is for educational and personal use.
-It is designed to demonstrate how browser extensions can enhance user experience by reducing unwanted content.
+* **HTML/CSS/JS (Vanilla):** Designed for maximum speed and minimum bundle size.
+* **Chrome Extension API (Manifest V3):** Secure, modern architecture preventing remote code injection.
+* **Canvas API:** Generating dynamic embedded visual statistical graphs.
 
 ---
 
 ## 👨‍💻 Author
 
-Developed by **Swostik**
+Developed by **Swostik**  
 Student & Graphic Designer | BIM
 
----
+### ⭐ Support the Project
+If you enjoy an ad-free web experience, please consider dropping a ⭐ on the GitHub repository or reaching out to collaborate!
 
-## ⭐ Support
-
-If you like this project:
-
-* Give it a ⭐ on GitHub
-* Share feedback
-* Suggest improvements
-
----
-
-## 📬 Contact
-
-Feel free to reach out for collaboration or improvements.
-
----
-
-> "Clean web, better experience."
-
-# Ultimate Ad Blocker - Extension Setup Guide
-
-## 📁 Files Overview
-
-### Core Files
-- **manifest.json** — Extension configuration and permissions
-- **popup.html** — UI for the popup (stats, controls, chart)
-- **popup.js** — Popup logic and interactions
-- **background.js** — Service worker that manages storage and tracks blocked ads
-- **content.js** — Script that runs on pages to block ads
-- **rules.json** — Network-level ad blocking rules
-
-### Icons (Required)
-You need to create 3 PNG icon files:
-- `icons/icon16.png` (16×16px)
-- `icons/icon48.png` (48×48px)
-- `icons/icon128.png` (128×128px)
-
-Or use simple icons from [Google Icon Library](https://fonts.google.com/icons).
-
----
-
-## 🚀 Installation Steps
-
-### 1. Create the Extension Folder
-```
-ultimate-ad-blocker/
-├── manifest.json
-├── popup.html
-├── popup.js
-├── background.js
-├── content.js
-├── rules.json
-└── icons/
-    ├── icon16.png
-    ├── icon48.png
-    └── icon128.png
-```
-
-### 2. Load in Chrome
-1. Open `chrome://extensions/`
-2. Enable **Developer mode** (top right)
-3. Click **Load unpacked**
-4. Select the `ultimate-ad-blocker` folder
-
-### 3. Test It
-- Visit a website with ads
-- Click the extension icon in the toolbar
-- You should see the ad count increasing
-
----
-
-## 📊 How It Works
-
-### Network-Level Blocking (rules.json)
-- Blocks ad requests BEFORE they're loaded
-- Targets: Google Ads, Facebook, Criteo, Taboola, etc.
-- Most efficient method
-- ~24 rules covering major ad networks
-
-### DOM-Level Blocking (content.js)
-- Removes ads already on the page
-- Uses CSS selectors and patterns
-- Handles dynamic ads added after page load
-- Fallback for ads that bypass network rules
-
-### Tracking (background.js)
-- Counts total ads blocked
-- Tracks per-domain stats
-- Weekly breakdown for the chart
-- Stores data in Chrome sync storage
-
----
-
-## ⚙️ Configuration
-
-### Add More Ad Networks
-Edit `rules.json` to add more ad networks. Example:
-
-```json
-{
-  "id": 25,
-  "priority": 1,
-  "action": { "type": "block" },
-  "condition": {
-    "urlFilter": "example-ads.com",
-    "resourceTypes": ["script", "image", "xhr"]
-  }
-}
-```
-
-### Whitelist Sites
-In the popup, click "Whitelist This Site" to disable blocking on that domain.
-
-### Disable Extension
-Click "Disable" in the popup to turn off ad blocking globally.
-
----
-
-## 🐛 Troubleshooting
-
-### Ads Still Show
-- Refresh the page
-- Check if the domain is whitelisted
-- Verify the extension is enabled
-- Add the ad network to rules.json
-
-### Numbers Not Updating
-- Check if "tabs" permission is enabled in manifest
-- Open DevTools (F12) and check Console for errors
-- Reload the extension (chrome://extensions/)
-
-### Extension Crashes
-- Check Console for JavaScript errors (F12)
-- Verify rules.json is valid JSON (use [jsonlint.com](https://jsonlint.com))
-- Ensure all required permissions are in manifest.json
-
----
-
-## 🎨 Icons
-
-Create simple icons using:
-1. **Free tools**: [favicon-generator.org](https://www.favicon-generator.org)
-2. **Design apps**: Figma, Photoshop
-3. **AI**: ChatGPT with DALL-E ("Create a shield icon")
-4. **Icon libraries**: 
-   - [Phosphor Icons](https://phosphoricons.com)
-   - [Heroicons](https://heroicons.com)
-   - [Bootstrap Icons](https://icons.getbootstrap.com)
-
-**Icon Requirements:**
-- Format: PNG (transparency supported)
-- Dimensions: Exactly 16×16, 48×48, 128×128
-- Design: Simple, recognizable (shield, lock, filter symbol)
-
----
-
-## 📋 Privacy & Safety
-
-✅ **What this extension does:**
-- Blocks ad requests at network level
-- Tracks blocked ads count (local storage only)
-- Stores stats in Chrome sync storage
-
-❌ **What this extension does NOT do:**
-- Collect user data
-- Track browsing activity
-- Send data to external servers
-- Steal passwords or personal info
-
-All data stays local to your device.
-
----
-
-## 📈 Future Improvements
-
-- [ ] Import/export blocklist
-- [ ] Custom rules UI
-- [ ] Performance metrics
-- [ ] Domain-specific rules
-- [ ] Block tracking (analytics.js)
-- [ ] Video ad blocking
-
----
-
-## 📝 License & Credits
-
-This extension uses:
-- Chrome Manifest V3 API
-- Declarative Net Request API
-- Chrome Storage Sync API
-
-Built as a simple, privacy-focused ad blocker.
-
----
-
-## ❓ Support
-
-If you encounter issues:
-1. Check the Console (F12 → Console tab)
-2. Verify all files are in place
-3. Ensure manifest.json is valid
-4. Try reloading the extension
-5. Restart Chrome
-
-Happy ad-free browsing! 🛡️
+> *"Clean web, better experience."*
