@@ -1,23 +1,23 @@
-# 🛡️ Shield - Ultimate Ad Blocker (Chrome Extension)
+Shield - Ultimate Ad Blocker (Chrome Extension)
 
 A lightning-fast, lightweight, and privacy-focused ad blocker powered by **Manifest V3**.  
 Designed to deliver a seamless web experience by stopping intrusive ads, skipping YouTube video ads, and protecting against phishing trackers without logging what you do.
 
 ---
 
-## ✨ Key Features
+ Key Features
 
-* 🚫 **Comprehensive Network Blocking:** Uses the `declarativeNetRequest` API to kill trackers and ad requests before they even load.
-* 🎥 **YouTube Ad Skipping:** Specialized, custom DOM injectors seamlessly bypass unskippable video ads.
-* 🎨 **Premium UI/UX:** A beautiful, card-based interface with subtle micro-animations and native **Dark Mode** & Light Mode support.
-* 🌐 **Built-in Localization (i18n):** Instantly switch between 6+ languages dynamically from the popup, no reloads required!
-* 📊 **Live Analytics & Charts:** Visual weekly charting and real-time blocked stat counters inside your popup.
-* 🎛️ **Granular Control:** Create custom domain filters, whitelist your favorite sites with one click, and view a real-time debug event log.
-* 🔒 **100% Privacy Focused:** Works entirely offline. Zero analytics, zero telemetry.
+* **Comprehensive Network Blocking:** Uses the `declarativeNetRequest` API to kill trackers and ad requests before they even load.
+***YouTube Ad Skipping:** Specialized, custom DOM injectors seamlessly bypass unskippable video ads.
+* **Premium UI/UX:** A beautiful, card-based interface with subtle micro-animations and native **Dark Mode** & Light Mode support.
+* **Built-in Localization (i18n):** Instantly switch between 6+ languages dynamically from the popup, no reloads required!
+***Live Analytics & Charts:** Visual weekly charting and real-time blocked stat counters inside your popup.
+***Granular Control:** Create custom domain filters, whitelist your favorite sites with one click, and view a real-time debug event log.
+**100% Privacy Focused:** Works entirely offline. Zero analytics, zero telemetry.
 
 ---
 
-## 🧠 How It Works
+## How It Works
 
 This extension leverages multiple overlapping techniques to ensure the web stays clean:
 
@@ -32,7 +32,7 @@ Tracks stats, caches data safely utilizing Chrome's Sync storage, and manages re
 
 ---
 
-## 🌐 Supported Languages
+##  Supported Languages
 Shield includes a dynamic language selector allowing users natively to view the extension in:
 * 🇺🇸 English
 * 🇪🇸 Spanish (Español)
@@ -43,7 +43,7 @@ Shield includes a dynamic language selector allowing users natively to view the 
 
 ---
 
-## 📁 Project Structure
+## Project Structure
 
 ```text
 ultimate-ad-blocker/
@@ -61,17 +61,17 @@ ultimate-ad-blocker/
 
 ---
 
-## 🚀 Installation for Users & Developers
+##  Installation for Users & Developers
 
 1. **Clone or Download** this repository.
 2. Open Chrome and type `chrome://extensions/` in the URL bar.
 3. Toggle **Developer mode** on (top right corner).
 4. Click **Load unpacked** and select the folder you downloaded containing the extension files.
-5. 📌 **Pin** the extension to your toolbar. Test it out on a media site, toggle your languages, and try dark mode!
+5.  **Pin** the extension to your toolbar. Test it out on a media site, toggle your languages, and try dark mode!
 
 ---
 
-## ⚙️ Extension Customization
+##  Extension Customization
 
 ### Adding Custom Filters
 Click the **Filters** tab within the extension popup and type the domain you wish to block (e.g., `ads.annoying-site.com`). Shield immediately targets it.
@@ -81,16 +81,16 @@ To support a creator, open the extension while on their site and click **"Whitel
 
 ---
 
-## 🔒 Privacy Guarantee
+##  Privacy Guarantee
 
 This extension exists for your protection and privacy. 
-* ❌ **NO** data scraping or user telemetry.
-* ❌ **NO** browsing history tracking.
-* ✅ Runs 100% on-device utilizing modern local-storage APIs.
+ **NO** data scraping or user telemetry.
+***NO** browsing history tracking.
+*  Runs 100% on-device utilizing modern local-storage APIs.
 
 ---
 
-## 🛠️ Tech Stack
+##  Tech Stack
 
 * **HTML/CSS/JS (Vanilla):** Designed for maximum speed and minimum bundle size.
 * **Chrome Extension API (Manifest V3):** Secure, modern architecture preventing remote code injection.
@@ -98,12 +98,12 @@ This extension exists for your protection and privacy.
 
 ---
 
-## 👨‍💻 Author
+##  Author
 
 Developed by **Swostik**  
 Student & Graphic Designer | BIM
 
-### ⭐ Support the Project
+### Support the Project
 If you enjoy an ad-free web experience, please consider dropping a ⭐ on the GitHub repository or reaching out to collaborate!
 
 > *"Clean web, better experience."*
