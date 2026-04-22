@@ -50,14 +50,17 @@ async function init() {
     catch (_) { currentDomain = '—'; }
     siteDomainEl.textContent = currentDomain;
 
-    const data = await new Promise(r => chrome.storage.sync.get(['enabled', 'totalBlocked', 'adsBlocked', 'phishingBlocked', 'perSite', 'weekly', 'whitelist', 'debugMode', 'darkMode', 'language'], r));
+    // Use getStats message to fetch aggregated data from sync and local
+    const data = await chrome.runtime.sendMessage({ action: 'getStats' });
+    // Also fetch settings that might not be in getStats
+    const settings = await chrome.storage.sync.get(['darkMode', 'language']);
 
     isEnabled    = data.enabled !== false;
-    isDarkMode   = data.darkMode || false;
+    isDarkMode   = settings.darkMode || false;
     isWhitelisted = (data.whitelist || []).includes(currentDomain);
     
     // Setup i18n
-    if (data.language) currentLang = data.language;
+    if (settings.language) currentLang = settings.language;
     applyLanguage(currentLang);
     buildLangMenu();
 
@@ -317,13 +320,14 @@ function showToast(msg) {
 function escHtml(str) { return String(str).replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'})[m]); }
 
 init();
-setInterval(()=>{
+setInterval(async () => {
     const active = document.querySelector('.tab.active')?.dataset.tab;
-    if(active==='shield') chrome.storage.sync.get(['totalBlocked','phishingBlocked','perSite','weekly'], d=>{
+    if (active === 'shield') {
+        const d = await chrome.runtime.sendMessage({ action: 'getStats' });
         animateCounter(totalBlockedEl, d.totalBlocked || 0);
         animateCounter(phishingEl, d.phishingBlocked || 0);
-        animateCounter(siteBlockedEl, (d.perSite||{})[currentDomain] || 0);
-        drawChart(d.weekly||{});
-    });
-    if(active==='logs') loadLogs();
+        animateCounter(siteBlockedEl, (d.perSite || {})[currentDomain] || 0);
+        drawChart(d.weekly || {});
+    }
+    if (active === 'logs') loadLogs();
 }, 2500);
