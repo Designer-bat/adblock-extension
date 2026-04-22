@@ -194,16 +194,18 @@ class RuleManager {
     }
 }
 
-// ─── Main Extension Logic ─────────────────────────────────────
 const storageManager = new StorageManager();
 const logger = new Logger(CONFIG.MAX_LOG_ENTRIES);
+
+// Initialize logger immediately on start
+logger.init();
 
 /**
  * Robust URL parsing helper
  */
 function getHostname(url) {
     try {
-        if (!url) return 'unknown';
+        if (!url || typeof url !== 'string') return 'unknown';
         const parsed = new URL(url);
         return parsed.hostname || 'unknown';
     } catch (e) {
